@@ -1,0 +1,5 @@
+{
+  "installCommand": "echo 'install runs inside buildCommand'",
+  "buildCommand": "cd app && curl --proto '=https' --tlsv1.2 -sSf https://sh.rustup.rs | sh -s -- -y --default-toolchain stable --profile minimal && . \"$HOME/.cargo/env\" && rustup target add wasm32-unknown-unknown && curl https://rustwasm.github.io/wasm-pack/installer/init.sh -sSf | sh && npm install && npm run build",
+  "outputDirectory": "app/dist"
+}
