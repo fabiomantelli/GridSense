@@ -66,46 +66,50 @@
   </section>
 
   <section>
-    <h4 class="section-label">Events</h4>
-    {#if facts.events.length === 0}
-      <div class="status-pill good">
-        <span class="status-icon">{@render checkIcon()}</span>
-        Nenhum evento de mudança abrupta detectado (limiar: 20% de RMS ciclo a ciclo)
-      </div>
-    {:else}
-      <div class="event-list">
-        {#each facts.events as e}
-          {@const severity = severityOf(e.kind)}
-          <div class="event-card {severity}">
-            <span class="status-icon">{@render (severity === 'critical' ? alertIcon : infoIcon)()}</span>
-            <div class="event-body">
-              <p class="event-kind">{describeFaultKind(e.kind)}</p>
-              <dl class="event-facts">
-                <div>
-                  <dt>Onset</dt>
-                  <dd>{fmtMs(e.onset_time_us)} (amostra {e.onset_sample}), grupo "{e.involved_group_label}"</dd>
-                </div>
-                {#if e.current_multiple != null}
-                  <div>
-                    <dt>Corrente de falta</dt>
-                    <dd>≈ {e.current_multiple.toFixed(2)}× a linha de base pré-evento</dd>
-                  </div>
-                {/if}
-                {#if e.breaker_channel_id}
-                  <div>
-                    <dt>Disjuntor</dt>
-                    <dd>
-                      "{e.breaker_channel_id}" mudou de estado{#if e.time_to_trip_us != null}
-                        {' '}{fmtMs(e.time_to_trip_us)} após o início{/if}
-                    </dd>
-                  </div>
-                {/if}
-              </dl>
-            </div>
+    <details class="events-card" open>
+      <summary>Events{#if facts.events.length > 0}&nbsp;— {facts.events.length} detectado(s){/if}</summary>
+      <div class="content">
+        {#if facts.events.length === 0}
+          <div class="status-pill good">
+            <span class="status-icon">{@render checkIcon()}</span>
+            Nenhum evento de mudança abrupta detectado (limiar: 20% de RMS ciclo a ciclo)
           </div>
-        {/each}
+        {:else}
+          <div class="event-list">
+            {#each facts.events as e}
+              {@const severity = severityOf(e.kind)}
+              <div class="event-card {severity}">
+                <span class="status-icon">{@render (severity === 'critical' ? alertIcon : infoIcon)()}</span>
+                <div class="event-body">
+                  <p class="event-kind">{describeFaultKind(e.kind)}</p>
+                  <dl class="event-facts">
+                    <div>
+                      <dt>Onset</dt>
+                      <dd>{fmtMs(e.onset_time_us)} (amostra {e.onset_sample}), grupo "{e.involved_group_label}"</dd>
+                    </div>
+                    {#if e.current_multiple != null}
+                      <div>
+                        <dt>Corrente de falta</dt>
+                        <dd>≈ {e.current_multiple.toFixed(2)}× a linha de base pré-evento</dd>
+                      </div>
+                    {/if}
+                    {#if e.breaker_channel_id}
+                      <div>
+                        <dt>Disjuntor</dt>
+                        <dd>
+                          "{e.breaker_channel_id}" mudou de estado{#if e.time_to_trip_us != null}
+                            {' '}{fmtMs(e.time_to_trip_us)} após o início{/if}
+                        </dd>
+                      </div>
+                    {/if}
+                  </dl>
+                </div>
+              </div>
+            {/each}
+          </div>
+        {/if}
       </div>
-    {/if}
+    </details>
   </section>
 
   <section>
@@ -221,6 +225,27 @@
   .stat-label {
     font-size: 0.75rem;
     color: var(--text-muted);
+  }
+
+  .events-card {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: var(--radius-md);
+    box-shadow: var(--shadow-card);
+  }
+  .events-card summary {
+    cursor: pointer;
+    padding: 0.7rem 1rem;
+    font-size: 0.85rem;
+    color: var(--text-secondary);
+    user-select: none;
+  }
+  .events-card summary::marker {
+    color: var(--text-muted);
+  }
+  .events-card .content {
+    padding: 0.75rem 1rem 1rem;
+    border-top: 1px solid var(--border);
   }
 
   .status-pill {

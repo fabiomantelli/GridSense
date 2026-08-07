@@ -9,8 +9,17 @@
 
   const WIDTH = 800;
   const ROW_HEIGHT = 28;
-  const LABEL_WIDTH = 140;
+  const LABEL_WIDTH = 190;
   const PLOT_WIDTH = WIDTH - LABEL_WIDTH;
+  const FONT_SIZE = 12;
+  // Rough average glyph width for this sans-serif at FONT_SIZE, used only to decide
+  // when to truncate — doesn't need to be exact, just conservative enough that a
+  // truncated label plus "…" reliably fits before the timeline bars start.
+  const MAX_LABEL_CHARS = Math.floor((LABEL_WIDTH - 8) / (FONT_SIZE * 0.58));
+
+  function truncateLabel(label: string): string {
+    return label.length > MAX_LABEL_CHARS ? `${label.slice(0, MAX_LABEL_CHARS - 1).trimEnd()}…` : label;
+  }
 
   interface Segment {
     startMs: number;
@@ -64,8 +73,9 @@
         role="img"
         aria-label="Digital channel state timeline"
       >
+        <!-- Bars first, labels last: labels must always paint on top so a long
+             channel name is never hidden behind a bar it happens to overlap. -->
         {#each channels as ch, row}
-          <text x="0" y={row * ROW_HEIGHT + ROW_HEIGHT / 2 + 4} font-size="12" fill={theme.text}>{ch.def.id}</text>
           {#each ch.segments as seg}
             <rect
               x={LABEL_WIDTH + xPos(seg.startMs)}
@@ -76,6 +86,14 @@
               fill={seg.state ? theme.series[0] : theme.grid}
             />
           {/each}
+        {/each}
+        {#each channels as ch, row}
+          <text x="0" y={row * ROW_HEIGHT + ROW_HEIGHT / 2 + 4} font-size={FONT_SIZE} fill={theme.text}>
+            {truncateLabel(ch.def.id)}
+            {#if ch.def.id.length > MAX_LABEL_CHARS}
+              <title>{ch.def.id}</title>
+            {/if}
+          </text>
         {/each}
       </svg>
       <p class="legend">
