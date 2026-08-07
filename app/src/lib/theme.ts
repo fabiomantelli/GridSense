@@ -4,6 +4,10 @@ export interface ChartTheme {
   grid: string;
   baseline: string;
   text: string;
+  /** Vertical marker at a detected event's onset (status-critical, from palette.md). */
+  markerCritical: string;
+  /** Vertical marker at a correlated breaker/state-change time — dashed, neutral. */
+  markerNeutral: string;
 }
 
 const LIGHT: ChartTheme = {
@@ -12,6 +16,8 @@ const LIGHT: ChartTheme = {
   grid: '#e1e0d9',
   baseline: '#c3c2b7',
   text: '#898781',
+  markerCritical: '#d03b3b',
+  markerNeutral: '#52514e',
 };
 
 const DARK: ChartTheme = {
@@ -20,6 +26,8 @@ const DARK: ChartTheme = {
   grid: '#2c2c2a',
   baseline: '#383835',
   text: '#898781',
+  markerCritical: '#e66767',
+  markerNeutral: '#c3c2b7',
 };
 
 /**

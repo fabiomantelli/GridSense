@@ -7,13 +7,14 @@
   import FactsPanel from './components/FactsPanel.svelte';
   import { pairComtradeFiles, type ComtradePair, type PendingHalf } from './lib/filePairing';
   import { loadComtrade, disposeRecord } from './lib/wasm';
-  import type { CfgFile } from './lib/types';
+  import type { AnalysisFacts, CfgFile } from './lib/types';
   import type { ComtradeHandle } from './wasm-pkg/gridsense_wasm';
 
   interface Session {
     stem: string;
     metadata: CfgFile;
     handle: ComtradeHandle;
+    facts: AnalysisFacts;
   }
 
   let sessions = $state<Session[]>([]);
@@ -40,8 +41,8 @@
       for (const pair of pairs) {
         const cfgBytes = new Uint8Array(await pair.cfg.arrayBuffer());
         const datBytes = new Uint8Array(await pair.dat.arrayBuffer());
-        const { handle, metadata } = await loadComtrade(cfgBytes, datBytes);
-        sessions = [...sessions, { stem: pair.stem, metadata, handle }];
+        const { handle, metadata, facts } = await loadComtrade(cfgBytes, datBytes);
+        sessions = [...sessions, { stem: pair.stem, metadata, handle, facts }];
         activeStem = pair.stem;
       }
     } catch (e) {
@@ -54,7 +55,7 @@
   function closeSession(stem: string) {
     const session = sessions.find((s) => s.stem === stem);
     if (session) {
-      disposeRecord({ handle: session.handle, metadata: session.metadata });
+      disposeRecord(session);
     }
     sessions = sessions.filter((s) => s.stem !== stem);
     if (activeStem === stem) {
@@ -64,7 +65,7 @@
 
   onDestroy(() => {
     for (const s of sessions) {
-      disposeRecord({ handle: s.handle, metadata: s.metadata });
+      disposeRecord(s);
     }
   });
 </script>
@@ -113,11 +114,11 @@
     {#each sessions as s (s.stem)}
       {#if s.stem === activeStem}
         <section>
-          <FactsPanel handle={s.handle} />
+          <FactsPanel facts={s.facts} />
         </section>
         <section>
           <h2>Waveforms</h2>
-          <WaveformChart metadata={s.metadata} handle={s.handle} />
+          <WaveformChart metadata={s.metadata} handle={s.handle} facts={s.facts} />
         </section>
         <section>
           <h2>Digital channels</h2>

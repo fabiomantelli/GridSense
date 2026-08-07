@@ -1,12 +1,7 @@
 <script lang="ts">
   import type { AnalysisFacts, FaultKind } from '../lib/types';
-  import type { ComtradeHandle } from '../wasm-pkg/gridsense_wasm';
 
-  let { handle }: { handle: ComtradeHandle } = $props();
-
-  // Session components are keyed by stem and never rebound to a different handle;
-  // $derived here is only to satisfy Svelte's reactivity contract for the prop read.
-  const facts = $derived(handle.run_analysis() as AnalysisFacts);
+  let { facts }: { facts: AnalysisFacts } = $props();
 
   type Severity = 'good' | 'warning' | 'critical';
 
@@ -114,65 +109,70 @@
   </section>
 
   <section>
-    <h4 class="section-label">Sequence components (first cycle)</h4>
     {#if facts.sequence_component_groups.length === 0}
+      <h4 class="section-label">Sequence components (first cycle)</h4>
       <p class="note">No three-phase channel groups identified.</p>
     {:else}
-      <div class="table-card">
+      <details class="table-card">
+        <summary>Sequence components (first cycle) — {facts.sequence_component_groups.length} grupo(s)</summary>
+        <div class="table-scroll">
+          <table>
+            <thead>
+              <tr>
+                <th>Group</th>
+                <th>Units</th>
+                <th>Zero</th>
+                <th>Positive</th>
+                <th>Negative</th>
+              </tr>
+            </thead>
+            <tbody>
+              {#each facts.sequence_component_groups as g}
+                <tr>
+                  <td class="label-col">{g.group_label}</td>
+                  <td>{g.units}</td>
+                  <td>{g.zero_magnitude.toFixed(3)}</td>
+                  <td>{g.positive_magnitude.toFixed(3)}</td>
+                  <td>{g.negative_magnitude.toFixed(3)}</td>
+                </tr>
+              {/each}
+            </tbody>
+          </table>
+        </div>
+      </details>
+    {/if}
+  </section>
+
+  <section>
+    <details class="table-card">
+      <summary>Channel summary — {facts.channel_summaries.length} canais</summary>
+      <div class="table-scroll">
         <table>
           <thead>
             <tr>
-              <th>Group</th>
+              <th>Channel</th>
               <th>Units</th>
-              <th>Zero</th>
-              <th>Positive</th>
-              <th>Negative</th>
+              <th>Min</th>
+              <th>Max</th>
+              <th>Mean</th>
+              <th>RMS</th>
             </tr>
           </thead>
           <tbody>
-            {#each facts.sequence_component_groups as g}
+            {#each facts.channel_summaries as c}
               <tr>
-                <td class="label-col">{g.group_label}</td>
-                <td>{g.units}</td>
-                <td>{g.zero_magnitude.toFixed(3)}</td>
-                <td>{g.positive_magnitude.toFixed(3)}</td>
-                <td>{g.negative_magnitude.toFixed(3)}</td>
+                <td class="label-col">{c.id}</td>
+                <td>{c.units}</td>
+                <td>{c.min.toFixed(3)}</td>
+                <td>{c.max.toFixed(3)}</td>
+                <td>{c.mean.toFixed(3)}</td>
+                <td>{c.rms.toFixed(3)}</td>
               </tr>
             {/each}
           </tbody>
         </table>
       </div>
-    {/if}
-  </section>
-
-  <section>
-    <h4 class="section-label">Channel summary</h4>
-    <div class="table-card">
-      <table>
-        <thead>
-          <tr>
-            <th>Channel</th>
-            <th>Units</th>
-            <th>Min</th>
-            <th>Max</th>
-            <th>Mean</th>
-            <th>RMS</th>
-          </tr>
-        </thead>
-        <tbody>
-          {#each facts.channel_summaries as c}
-            <tr>
-              <td class="label-col">{c.id}</td>
-              <td>{c.units}</td>
-              <td>{c.min.toFixed(3)}</td>
-              <td>{c.max.toFixed(3)}</td>
-              <td>{c.mean.toFixed(3)}</td>
-              <td>{c.rms.toFixed(3)}</td>
-            </tr>
-          {/each}
-        </tbody>
-      </table>
-    </div>
+    </details>
   </section>
 </div>
 
@@ -298,8 +298,21 @@
     background: var(--surface);
     border: 1px solid var(--border);
     border-radius: var(--radius-md);
-    overflow: auto;
     box-shadow: var(--shadow-card);
+  }
+  .table-card summary {
+    cursor: pointer;
+    padding: 0.7rem 1rem;
+    font-size: 0.85rem;
+    color: var(--text-secondary);
+    user-select: none;
+  }
+  .table-card summary::marker {
+    color: var(--text-muted);
+  }
+  .table-scroll {
+    overflow: auto;
+    border-top: 1px solid var(--border);
   }
   table {
     border-collapse: collapse;
@@ -316,9 +329,13 @@
     color: var(--text-muted);
     font-weight: 500;
     font-size: 0.78rem;
+    background: var(--surface-raised);
   }
   tr:last-child td {
     border-bottom: none;
+  }
+  tbody tr:nth-child(even) {
+    background: var(--page);
   }
   .label-col {
     text-align: left;
