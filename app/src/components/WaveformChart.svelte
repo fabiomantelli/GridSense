@@ -135,7 +135,7 @@
 {#if groups.length}
   <div class="toolbar">
     <button class="reset-zoom" onclick={resetZoom}>Reset zoom</button>
-    <span class="hint">arraste para dar zoom · duplo clique para resetar</span>
+    <span class="hint">drag to zoom · double-click to reset</span>
   </div>
   <div class="charts">
     {#each groups as [units], gi (units)}

@@ -40,10 +40,10 @@
     <path d="M12 12v7" />
     <path d="M9.5 16l2.5-2.5L14.5 16" />
   </svg>
-  <p class="primary">Arraste um par COMTRADE <code>.cfg</code> + <code>.dat</code></p>
-  <p class="hint">o arquivo nunca sai do seu navegador</p>
+  <p class="primary">Drop a COMTRADE <code>.cfg</code> + <code>.dat</code> pair</p>
+  <p class="hint">the file never leaves your browser</p>
   <label class="file-input-label">
-    Escolher arquivos
+    Choose files
     <input type="file" multiple accept=".cfg,.dat" onchange={handleInputChange} />
   </label>
 </div>

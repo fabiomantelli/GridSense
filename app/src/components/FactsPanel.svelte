@@ -52,11 +52,11 @@
     <div class="stat-strip">
       <div class="stat">
         <span class="stat-value">{facts.record_summary.sample_count}</span>
-        <span class="stat-label">amostras</span>
+        <span class="stat-label">samples</span>
       </div>
       <div class="stat">
         <span class="stat-value">{fmtMs(facts.record_summary.duration_us)}</span>
-        <span class="stat-label">duração</span>
+        <span class="stat-label">duration</span>
       </div>
       <div class="stat">
         <span class="stat-value">{facts.record_summary.line_frequency} Hz</span>
@@ -67,12 +67,12 @@
 
   <section>
     <details class="events-card" open>
-      <summary>Events{#if facts.events.length > 0}&nbsp;— {facts.events.length} detectado(s){/if}</summary>
+      <summary>Events{#if facts.events.length > 0}&nbsp;— {facts.events.length} detected{/if}</summary>
       <div class="content">
         {#if facts.events.length === 0}
           <div class="status-pill good">
             <span class="status-icon">{@render checkIcon()}</span>
-            Nenhum evento de mudança abrupta detectado (limiar: 20% de RMS ciclo a ciclo)
+            No step-change events detected (threshold: 20% cycle-over-cycle RMS)
           </div>
         {:else}
           <div class="event-list">
@@ -85,20 +85,20 @@
                   <dl class="event-facts">
                     <div>
                       <dt>Onset</dt>
-                      <dd>{fmtMs(e.onset_time_us)} (amostra {e.onset_sample}), grupo "{e.involved_group_label}"</dd>
+                      <dd>{fmtMs(e.onset_time_us)} (sample {e.onset_sample}), channel group "{e.involved_group_label}"</dd>
                     </div>
                     {#if e.current_multiple != null}
                       <div>
-                        <dt>Corrente de falta</dt>
-                        <dd>≈ {e.current_multiple.toFixed(2)}× a linha de base pré-evento</dd>
+                        <dt>Fault current</dt>
+                        <dd>≈ {e.current_multiple.toFixed(2)}× pre-event baseline</dd>
                       </div>
                     {/if}
                     {#if e.breaker_channel_id}
                       <div>
-                        <dt>Disjuntor</dt>
+                        <dt>Breaker</dt>
                         <dd>
-                          "{e.breaker_channel_id}" mudou de estado{#if e.time_to_trip_us != null}
-                            {' '}{fmtMs(e.time_to_trip_us)} após o início{/if}
+                          "{e.breaker_channel_id}" changed state{#if e.time_to_trip_us != null}
+                            {' '}{fmtMs(e.time_to_trip_us)} after onset{/if}
                         </dd>
                       </div>
                     {/if}
@@ -118,7 +118,12 @@
       <p class="note">No three-phase channel groups identified.</p>
     {:else}
       <details class="table-card">
-        <summary>Sequence components (first cycle) — {facts.sequence_component_groups.length} grupo(s)</summary>
+        <summary>
+          Sequence components (first cycle) — {facts.sequence_component_groups.length} group{facts
+            .sequence_component_groups.length === 1
+            ? ''
+            : 's'}
+        </summary>
         <div class="table-scroll">
           <table>
             <thead>
@@ -149,7 +154,7 @@
 
   <section>
     <details class="table-card">
-      <summary>Channel summary — {facts.channel_summaries.length} canais</summary>
+      <summary>Channel summary — {facts.channel_summaries.length} channel{facts.channel_summaries.length === 1 ? '' : 's'}</summary>
       <div class="table-scroll">
         <table>
           <thead>

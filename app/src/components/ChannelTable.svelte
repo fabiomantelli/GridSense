@@ -25,10 +25,10 @@
 
 <details class="raw-table">
   <summary>
-    {timestamps.length} amostras, {metadata.analog_channels.length} analógicas, {metadata.digital_channels.length}
-    digitais
+    Raw samples — {timestamps.length} samples, {metadata.analog_channels.length} analog, {metadata.digital_channels.length}
+    digital
     {#if timestamps.length > maxRows}
-      &nbsp;(mostrando as primeiras {maxRows})
+      &nbsp;(showing first {maxRows})
     {/if}
   </summary>
   <div class="table-scroll">

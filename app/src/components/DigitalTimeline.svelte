@@ -65,7 +65,7 @@
 
 {#if channels.length}
   <details class="timeline-card">
-    <summary>Digital channels — {channels.length} canais</summary>
+    <summary>Digital channels — {channels.length} channel{channels.length === 1 ? '' : 's'}</summary>
     <div class="content">
       <svg
         viewBox="0 0 {WIDTH} {channels.length * ROW_HEIGHT + 4}"
@@ -97,8 +97,8 @@
         {/each}
       </svg>
       <p class="legend">
-        <span class="swatch on" style:background={theme.series[0]}></span> 1 (energizado/fechado)
-        <span class="swatch off" style:background={theme.grid}></span> 0 (desenergizado/aberto)
+        <span class="swatch on" style:background={theme.series[0]}></span> 1 (energized/closed)
+        <span class="swatch off" style:background={theme.grid}></span> 0 (de-energized/open)
       </p>
     </div>
   </details>

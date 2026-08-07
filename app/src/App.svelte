@@ -77,28 +77,28 @@
     </svg>
     <span class="wordmark">Utility Investigator</span>
   </div>
-  <span class="trust-badge">100% local · nada é enviado</span>
+  <span class="trust-badge">100% local · nothing is uploaded</span>
 </header>
 
 <main>
   <DropZone onFiles={handleFiles} />
 
   {#if loading}
-    <p class="note">Analisando…</p>
+    <p class="note">Analyzing…</p>
   {/if}
   {#if error}
     <p class="error">{error}</p>
   {/if}
   {#if pendingHalves.length}
     <p class="note">
-      Aguardando arquivo correspondente:
+      Waiting for matching file:
       {#each pendingHalves as p (p.stem + p.kind)}
         {p.stem}.{p.kind === 'cfg' ? 'dat' : 'cfg'}
       {/each}
     </p>
   {/if}
   {#if ignored.length}
-    <p class="note">Ignorados (não .cfg/.dat): {ignored.map((f) => f.name).join(', ')}</p>
+    <p class="note">Ignored (not .cfg/.dat): {ignored.map((f) => f.name).join(', ')}</p>
   {/if}
 
   {#if sessions.length}
