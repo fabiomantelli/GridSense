@@ -121,7 +121,6 @@
           <WaveformChart metadata={s.metadata} handle={s.handle} facts={s.facts} />
         </section>
         <section>
-          <h2>Digital channels</h2>
           <DigitalTimeline metadata={s.metadata} handle={s.handle} />
         </section>
         <section>

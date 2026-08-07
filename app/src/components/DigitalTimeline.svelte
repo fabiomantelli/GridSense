@@ -55,32 +55,35 @@
 </script>
 
 {#if channels.length}
-  <div class="timeline-card">
-    <svg
-      viewBox="0 0 {WIDTH} {channels.length * ROW_HEIGHT + 4}"
-      class="digital-timeline"
-      role="img"
-      aria-label="Digital channel state timeline"
-    >
-      {#each channels as ch, row}
-        <text x="0" y={row * ROW_HEIGHT + ROW_HEIGHT / 2 + 4} font-size="12" fill={theme.text}>{ch.def.id}</text>
-        {#each ch.segments as seg}
-          <rect
-            x={LABEL_WIDTH + xPos(seg.startMs)}
-            y={row * ROW_HEIGHT + 4}
-            width={Math.max(1, xPos(seg.endMs) - xPos(seg.startMs))}
-            height={ROW_HEIGHT - 8}
-            rx="2"
-            fill={seg.state ? theme.series[0] : theme.grid}
-          />
+  <details class="timeline-card">
+    <summary>Digital channels — {channels.length} canais</summary>
+    <div class="content">
+      <svg
+        viewBox="0 0 {WIDTH} {channels.length * ROW_HEIGHT + 4}"
+        class="digital-timeline"
+        role="img"
+        aria-label="Digital channel state timeline"
+      >
+        {#each channels as ch, row}
+          <text x="0" y={row * ROW_HEIGHT + ROW_HEIGHT / 2 + 4} font-size="12" fill={theme.text}>{ch.def.id}</text>
+          {#each ch.segments as seg}
+            <rect
+              x={LABEL_WIDTH + xPos(seg.startMs)}
+              y={row * ROW_HEIGHT + 4}
+              width={Math.max(1, xPos(seg.endMs) - xPos(seg.startMs))}
+              height={ROW_HEIGHT - 8}
+              rx="2"
+              fill={seg.state ? theme.series[0] : theme.grid}
+            />
+          {/each}
         {/each}
-      {/each}
-    </svg>
-    <p class="legend">
-      <span class="swatch on" style:background={theme.series[0]}></span> 1 (energizado/fechado)
-      <span class="swatch off" style:background={theme.grid}></span> 0 (desenergizado/aberto)
-    </p>
-  </div>
+      </svg>
+      <p class="legend">
+        <span class="swatch on" style:background={theme.series[0]}></span> 1 (energizado/fechado)
+        <span class="swatch off" style:background={theme.grid}></span> 0 (desenergizado/aberto)
+      </p>
+    </div>
+  </details>
 {:else}
   <p class="note">No digital channels in this record.</p>
 {/if}
@@ -90,8 +93,21 @@
     background: var(--surface);
     border: 1px solid var(--border);
     border-radius: var(--radius-md);
-    padding: 0.75rem;
     box-shadow: var(--shadow-card);
+  }
+  .timeline-card summary {
+    cursor: pointer;
+    padding: 0.7rem 1rem;
+    font-size: 0.85rem;
+    color: var(--text-secondary);
+    user-select: none;
+  }
+  .timeline-card summary::marker {
+    color: var(--text-muted);
+  }
+  .content {
+    padding: 0.75rem;
+    border-top: 1px solid var(--border);
   }
   .digital-timeline {
     width: 100%;
