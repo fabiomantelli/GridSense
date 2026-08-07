@@ -31,6 +31,33 @@
     return out;
   }
 
+  // Records being compared here span at most a few seconds, so uPlot's default
+  // hierarchical time-axis formatter (built for dashboards spanning days/months,
+  // which only relabels the digits that changed since the previous tick) never pays
+  // for itself — it just prints a bare, ambiguous ":14.080" on every tick after the
+  // first and buries the actual hour/minute in a small one-time corner label. Every
+  // tick gets a full, self-contained HH:MM:ss.mmm instead.
+  function formatAbsoluteTick(sec: number): string {
+    const d = new Date(sec * 1000);
+    const hh = String(d.getHours()).padStart(2, '0');
+    const mm = String(d.getMinutes()).padStart(2, '0');
+    const ss = String(d.getSeconds()).padStart(2, '0');
+    const ms = String(d.getMilliseconds()).padStart(3, '0');
+    return `${hh}:${mm}:${ss}.${ms}`;
+  }
+
+  // The legend's hover value is a single reading, not a repeated tick label, so it
+  // can afford the date too — and needs to, since uPlot's own default here dropped
+  // seconds entirely (e.g. "2026-04-16 3:02am"), useless for locating a sub-cycle
+  // disturbance.
+  function formatAbsoluteDateTime(sec: number): string {
+    const d = new Date(sec * 1000);
+    const y = d.getFullYear();
+    const mo = String(d.getMonth() + 1).padStart(2, '0');
+    const day = String(d.getDate()).padStart(2, '0');
+    return `${y}-${mo}-${day} ${formatAbsoluteTick(sec)}`;
+  }
+
   // Session components are keyed by selection (see CompareView's {#key}) and never
   // rebound to a different `records` array; $derived here is only to satisfy
   // Svelte's reactivity contract for prop reads.
@@ -85,7 +112,7 @@
       font: '12px system-ui, -apple-system, sans-serif',
     };
     const series: uPlot.Series[] = [
-      {},
+      { value: (_u, raw) => (raw == null ? '--' : formatAbsoluteDateTime(raw)) },
       ...records.map((r, i) => ({
         label: `${r.stem} · ${r.metadata.analog_channels[r.channelIndex].id}`,
         stroke: theme.series[i % theme.series.length],
@@ -100,7 +127,7 @@
       height: 280,
       scales: { x: { time: true } },
       axes: [
-        { ...axisCommon, label: 'time' },
+        { ...axisCommon, label: 'time', values: (_u, splits) => splits.map(formatAbsoluteTick) },
         { ...axisCommon, label: units, size: 56 },
       ],
       series,
