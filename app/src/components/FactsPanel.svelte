@@ -85,7 +85,7 @@
                   <dt>Onset</dt>
                   <dd>{fmtMs(e.onset_time_us)} (amostra {e.onset_sample}), grupo "{e.involved_group_label}"</dd>
                 </div>
-                {#if e.current_multiple !== null}
+                {#if e.current_multiple != null}
                   <div>
                     <dt>Corrente de falta</dt>
                     <dd>≈ {e.current_multiple.toFixed(2)}× a linha de base pré-evento</dd>
@@ -95,7 +95,7 @@
                   <div>
                     <dt>Disjuntor</dt>
                     <dd>
-                      "{e.breaker_channel_id}" mudou de estado{#if e.time_to_trip_us !== null}
+                      "{e.breaker_channel_id}" mudou de estado{#if e.time_to_trip_us != null}
                         {' '}{fmtMs(e.time_to_trip_us)} após o início{/if}
                     </dd>
                   </div>

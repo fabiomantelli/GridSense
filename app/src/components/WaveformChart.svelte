@@ -36,7 +36,7 @@
   // already claims, not a separate/unverifiable rendering.
   const onsetMarkersMs = $derived(facts.events.map((e) => e.onset_time_us / 1000));
   const tripMarkersMs = $derived(
-    facts.events.filter((e) => e.time_to_trip_us !== null).map((e) => (e.onset_time_us + (e.time_to_trip_us as number)) / 1000),
+    facts.events.filter((e) => e.time_to_trip_us != null).map((e) => (e.onset_time_us + (e.time_to_trip_us as number)) / 1000),
   );
 
   let containers = $state<HTMLDivElement[]>([]);

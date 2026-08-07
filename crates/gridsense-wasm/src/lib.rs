@@ -1,9 +1,21 @@
 use gridsense_core::comtrade::{self, ComtradeRecord};
 use gridsense_core::analysis;
+use serde::Serialize;
 use wasm_bindgen::prelude::*;
 
 fn js_error(msg: impl std::fmt::Display) -> JsValue {
     JsValue::from(js_sys::Error::new(&msg.to_string()))
+}
+
+/// serde-wasm-bindgen's default serializer turns Rust `None` into JS `undefined`, not
+/// `null` — easy to miss since every hand-written `Option<T>` field here reads `null`
+/// on the TS/Svelte side (`x !== null` guards, `T | null` types), and `undefined`
+/// silently slips past those checks straight into a crash (e.g. `.toFixed()` on
+/// `undefined`). Route every struct we hand to JS through this serializer instead of
+/// `serde_wasm_bindgen::to_value` so `None` consistently becomes `null`.
+fn to_js<T: Serialize + ?Sized>(value: &T) -> Result<JsValue, JsValue> {
+    let serializer = serde_wasm_bindgen::Serializer::new().serialize_missing_as_null(true);
+    value.serialize(&serializer).map_err(js_error)
 }
 
 #[wasm_bindgen]
@@ -29,7 +41,7 @@ impl ComtradeHandle {
     /// factors, sample-rate segments) as a plain JS object.
     #[wasm_bindgen]
     pub fn metadata(&self) -> Result<JsValue, JsValue> {
-        serde_wasm_bindgen::to_value(&self.record.cfg).map_err(js_error)
+        to_js(&self.record.cfg)
     }
 
     pub fn sample_count(&self) -> usize {
@@ -69,6 +81,6 @@ impl ComtradeHandle {
     /// plain JS object. No raw sample arrays are included — only computed facts.
     pub fn run_analysis(&self) -> Result<JsValue, JsValue> {
         let facts = analysis::analyze(&self.record);
-        serde_wasm_bindgen::to_value(&facts).map_err(js_error)
+        to_js(&facts)
     }
 }

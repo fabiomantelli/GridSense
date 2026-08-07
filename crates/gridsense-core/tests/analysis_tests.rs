@@ -164,6 +164,33 @@ fn classify_events_identifies_phase_b_ground_fault_and_breaker_trip() {
 }
 
 #[test]
+fn classify_events_leaves_unmatched_optional_fields_none() {
+    // Voltage-only sag: no matching current rise, no breaker deviation. Regression
+    // guard for the gridsense-wasm serialization boundary — these `None`s must
+    // reach JS as `null`, not `undefined` (see gridsense-wasm/src/lib.rs's `to_js`),
+    // or the UI's `!= null` guards silently let a `.toFixed()` call crash.
+    let base = format!("{}/tests/fixtures/ascii/voltage_only_v1999", env!("CARGO_MANIFEST_DIR"));
+    let cfg = std::fs::read_to_string(format!("{base}.cfg")).unwrap();
+    let dat = std::fs::read(format!("{base}.dat")).unwrap();
+    let record = comtrade::load(&cfg, &dat).unwrap();
+
+    let events = classify_events(
+        &record.cfg,
+        &record.analog_samples,
+        &record.digital_samples,
+        &record.timestamps_us,
+        DEFAULT_STEP_THRESHOLD_PCT,
+    );
+
+    assert_eq!(events.len(), 1, "expected exactly one event, got {events:?}");
+    let e = &events[0];
+    assert!(matches!(e.kind, FaultKind::Unclassified), "expected Unclassified, got {:?}", e.kind);
+    assert!(e.current_multiple.is_none());
+    assert!(e.breaker_channel_id.is_none());
+    assert!(e.time_to_trip_us.is_none());
+}
+
+#[test]
 fn analyze_produces_facts_with_no_events_on_a_clean_record() {
     let base = format!("{}/tests/fixtures/ascii/synthetic_v1999", env!("CARGO_MANIFEST_DIR"));
     let cfg = std::fs::read_to_string(format!("{base}.cfg")).unwrap();

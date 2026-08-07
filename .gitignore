@@ -2,4 +2,5 @@
 /app/node_modules
 /app/dist
 /app/src/wasm-pkg
+/app/*.timestamp-*.mjs
 .DS_Store

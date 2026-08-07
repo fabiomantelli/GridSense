@@ -63,6 +63,7 @@ dependencies = [
  "console_error_panic_hook",
  "gridsense-core",
  "js-sys",
+ "serde",
  "serde-wasm-bindgen",
  "wasm-bindgen",
  "web-sys",
