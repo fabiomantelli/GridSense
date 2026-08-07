@@ -20,7 +20,25 @@
   // component's lifetime — CompareView remounts this component (via a {#key}) when
   // the selection changes, matching WaveformChart's "build once per mount" pattern
   // rather than reactively patching an existing uPlot instance's series list.
-  let { records, units }: { records: RecordSelection[]; units: string } = $props();
+  //
+  // initialRange/onRangeChange thread a shared x-window through CompareView: uPlot's
+  // cursor.sync only ever broadcasts LIVE scale changes between instances that are
+  // already mounted in the same sync group, so a quantity opened after another one
+  // was already zoomed would otherwise always start back at its own full range.
+  // initialRange seeds a freshly-mounted chart with whatever window is currently
+  // shared; onRangeChange reports this chart's window (its own zooms, resets, or a
+  // sync update received from a sibling) back up so later-opened charts inherit it.
+  let {
+    records,
+    units,
+    initialRange = null,
+    onRangeChange,
+  }: {
+    records: RecordSelection[];
+    units: string;
+    initialRange?: [number, number] | null;
+    onRangeChange?: (range: [number, number]) => void;
+  } = $props();
 
   const theme = resolveChartTheme();
 
@@ -102,6 +120,7 @@
 
   let container = $state<HTMLDivElement | undefined>(undefined);
   let plot: uPlot | undefined;
+  let isReady = false;
 
   function buildPlot() {
     if (!container) return;
@@ -162,9 +181,23 @@
             u.setSelect({ left: 0, top: 0, width: 0, height: 0 }, false);
           },
         ],
+        // Fires on this chart's own zoom/reset and on a scale change arriving via
+        // cursor.sync from an already-mounted sibling chart — either way, report the
+        // resulting window upward so a quantity opened after this one starts there
+        // instead of at its own full range. Skipped until after the initial
+        // construction-time auto-range/seed below, which isn't a user zoom.
+        setScale: [
+          (u, key) => {
+            if (key !== 'x' || !isReady) return;
+            const { min, max } = u.scales.x;
+            if (min != null && max != null) onRangeChange?.([min, max]);
+          },
+        ],
+        ready: [() => (isReady = true)],
       },
     };
     plot = new uPlot(opts, data, container);
+    if (initialRange) plot.setScale('x', { min: initialRange[0], max: initialRange[1] });
     container.ondblclick = () => resetZoom();
   }
 

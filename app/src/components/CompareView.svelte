@@ -10,6 +10,14 @@
   // namespaced by unit because the same record can supply more than one selected
   // quantity (e.g. VA for "V", IA for "A") through two different channels.
   let channelChoice = $state<Record<string, Record<string, number>>>({});
+  // The x-window currently shown, shared across every quantity's chart. uPlot's
+  // cursor.sync only broadcasts zoom/reset live between chart instances that are
+  // already mounted — a quantity opened after another one was zoomed would
+  // otherwise always start back at its own full range instead of the window the
+  // operator is actually looking at. Each MultiRecordChart reports its window here
+  // (its own zooms/resets, or one relayed from an already-open sibling); newly
+  // opened ones are seeded from it.
+  let sharedXRange = $state<[number, number] | null>(null);
 
   // Only sessions with a parsed absolute anchor can be honestly aligned — offering a
   // unit that zero eligible sessions have is a dead end, so don't surface it.
@@ -173,7 +181,12 @@
           </div>
           {#if unitRecords.length}
             {#key unitRecords.map((r) => `${r.stem}:${r.channelIndex}`).join(',')}
-              <MultiRecordChart records={unitRecords} units={unit} />
+              <MultiRecordChart
+                records={unitRecords}
+                units={unit}
+                initialRange={sharedXRange}
+                onRangeChange={(r) => (sharedXRange = r)}
+              />
             {/key}
           {/if}
         {/if}
