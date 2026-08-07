@@ -6,7 +6,7 @@ use super::phasor::extract_phasor;
 use super::rms::{rms_at, windowed_rms};
 use super::symmetrical_components::sequence_components;
 use crate::comtrade::CfgFile;
-use crate::util::{group_three_phase, quantity_kind, QuantityKind};
+use crate::util::{effective_sample_rate_hz, group_three_phase, quantity_kind, QuantityKind};
 
 pub const DEFAULT_STEP_THRESHOLD_PCT: f32 = 20.0;
 
@@ -189,7 +189,7 @@ pub fn classify_events(
     timestamps_us: &[f64],
     threshold_pct: f32,
 ) -> Vec<EventClassification> {
-    let fs = cfg.sample_rates.first().map(|s| s.samp_hz).unwrap_or(0.0);
+    let fs = effective_sample_rate_hz(cfg, timestamps_us);
     if fs <= 0.0 || cfg.line_frequency <= 0.0 {
         return Vec::new();
     }

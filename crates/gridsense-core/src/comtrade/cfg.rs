@@ -174,9 +174,13 @@ pub fn parse_cfg(text: &str) -> Result<CfgFile, ComtradeError> {
         .and_then(|s| s.parse::<f64>().ok())
         .unwrap_or(60.0);
 
-    // nrates, then that many "samp,endsamp" lines. nrates == 0 means "derive timing
-    // from the per-sample timestamp field in the .dat file instead" (no rate lines
-    // follow) — leave sample_rates empty in that case.
+    // nrates, then that many "samp,endsamp" lines. Per spec, nrates == 0 means "no
+    // fixed rate — derive timing from the per-sample timestamp field instead", but
+    // real-world files (confirmed against an actual relay export) still emit exactly
+    // one rate line in that case, with samp=0 and endsamp=total_samples. Treating
+    // nrates==0 as "zero lines follow" desyncs every line after it — the observed
+    // symptom was the DAT file-type line being missed entirely and a later line
+    // being misread as it, silently defaulting to ASCII for an actually-binary file.
     let (nrates_line, nrates_fields) = r
         .next_fields()
         .ok_or(ComtradeError::TruncatedCfg { expected: "nrates line" })?;
@@ -184,9 +188,10 @@ pub fn parse_cfg(text: &str) -> Result<CfgFile, ComtradeError> {
         .first()
         .and_then(|s| s.parse().ok())
         .ok_or(ComtradeError::CfgParseNumber { line: nrates_line, field: "nrates" })?;
+    let rate_lines_to_read = nrates.max(1);
 
-    let mut sample_rates = Vec::with_capacity(nrates);
-    for _ in 0..nrates {
+    let mut sample_rates = Vec::with_capacity(rate_lines_to_read);
+    for _ in 0..rate_lines_to_read {
         let (line, fields) = r
             .next_fields()
             .ok_or(ComtradeError::TruncatedCfg { expected: "sample rate line" })?;

@@ -5,7 +5,7 @@ use super::phasor::extract_phasor;
 use super::summary::{analog_channel_summaries, record_summary, ChannelSummary, RecordSummary};
 use super::symmetrical_components::sequence_components;
 use crate::comtrade::ComtradeRecord;
-use crate::util::{group_three_phase, quantity_kind, QuantityKind};
+use crate::util::{effective_sample_rate_hz, group_three_phase, quantity_kind, QuantityKind};
 
 #[derive(Debug, Clone, Serialize)]
 pub struct SequenceGroupResult {
@@ -32,7 +32,7 @@ pub struct AnalysisFacts {
 }
 
 pub fn analyze(record: &ComtradeRecord) -> AnalysisFacts {
-    let fs = record.cfg.sample_rates.first().map(|s| s.samp_hz).unwrap_or(0.0);
+    let fs = effective_sample_rate_hz(&record.cfg, &record.timestamps_us);
     let f0 = record.cfg.line_frequency;
     let cycle_len = if fs > 0.0 && f0 > 0.0 { (fs / f0).round() as usize } else { 0 };
 

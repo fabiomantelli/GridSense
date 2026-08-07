@@ -140,6 +140,29 @@ fn truncated_binary_dat_is_reported_not_panicked() {
 }
 
 #[test]
+fn nrates_zero_still_consumes_one_rate_line() {
+    // Regression test: real-world relay exports (confirmed against an actual
+    // PRSTF6-style substation file) set nrates=0 but still emit exactly one
+    // "samp,endsamp" line (samp=0, endsamp=total_samples). Previously we treated
+    // nrates==0 as "zero lines follow," which desynced every line after it and
+    // caused an actually-BINARY file to be misread as ASCII (and then fail UTF-8
+    // decoding on the real binary .dat bytes).
+    let (cfg_text, dat_bytes) = fixture("synthetic_v1999_nrates0");
+    let record = comtrade::load(&cfg_text, &dat_bytes).expect("parse nrates=0 fixture");
+
+    assert_eq!(record.cfg.dat_format, DatFormat::Ascii);
+    assert_eq!(record.cfg.time_multiplier, 1.0);
+    assert_eq!(record.cfg.sample_rates.len(), 1);
+    assert_eq!(record.cfg.sample_rates[0].samp_hz, 0.0);
+    assert_eq!(record.cfg.total_samples, 4);
+
+    // samp_hz == 0 means "no fixed rate" — timing must come from the per-sample
+    // timestamp field in the .dat file instead (here: 0, 333, 667, 1000 us).
+    assert_eq!(record.timestamps_us, vec![0.0, 333.0, 667.0, 1000.0]);
+    assert_eq!(record.analog_samples[0], vec![100.0, 200.0, 300.0, 400.0]);
+}
+
+#[test]
 fn parses_multi_channel_fault_event_fixture() {
     // 6 analog + 1 digital, 600 samples at 3 kHz — a synthetic phase-B fault used for
     // manual browser verification of the chart/timeline UI and, later, as an M4
