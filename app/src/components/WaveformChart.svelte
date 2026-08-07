@@ -4,10 +4,11 @@
   import { onMount, onDestroy } from 'svelte';
   import type { CfgFile } from '../lib/types';
   import type { ComtradeHandle } from '../wasm-pkg/gridsense_wasm';
+  import { resolveChartTheme } from '../lib/theme';
 
   let { metadata, handle }: { metadata: CfgFile; handle: ComtradeHandle } = $props();
 
-  const PALETTE = ['#4a9eff', '#ff6b6b', '#51cf66', '#ffa94d', '#cc5de8', '#20c997', '#f06595', '#94d82d'];
+  const theme = resolveChartTheme();
 
   // Group analog channels by engineering unit so each stacked plot shares a
   // meaningful Y-axis (e.g. all voltages together, all currents together).
@@ -40,23 +41,43 @@
         {},
         ...indices.map((idx, si) => ({
           label: metadata.analog_channels[idx].id,
-          stroke: PALETTE[si % PALETTE.length],
-          width: 1.5,
+          stroke: theme.series[si % theme.series.length],
+          width: 2,
         })),
       ];
+      const axisCommon = {
+        stroke: theme.text,
+        grid: { stroke: theme.grid, width: 1 },
+        ticks: { stroke: theme.grid, width: 1 },
+        font: '12px system-ui, -apple-system, sans-serif',
+      };
       const opts: uPlot.Options = {
         width: el.clientWidth || 800,
         height: 220,
         title: units,
         scales: { x: { time: false } },
-        axes: [{ label: 't (ms)' }, { label: units }],
+        axes: [
+          { ...axisCommon, label: 't (ms)' },
+          { ...axisCommon, label: units, size: 56 },
+        ],
         series,
         // Shared sync key: dragging/zooming one unit-group's plot moves the cursor
         // (and, via match, the zoom) on the others in lockstep.
         cursor: { sync: { key: 'gridsense-waveform', setSeries: true } },
       };
-      return new uPlot(opts, data, el);
+      const plot = new uPlot(opts, data, el);
+      styleLegend(plot);
+      return plot;
     });
+  }
+
+  // uPlot's built-in legend is functional but visually generic; restyle it to match
+  // the app's tokens rather than fighting uPlot's own CSS with !important overrides.
+  function styleLegend(plot: uPlot) {
+    const legend = plot.root.querySelector('.u-legend') as HTMLElement | null;
+    if (!legend) return;
+    legend.style.fontSize = '0.8rem';
+    legend.style.color = 'var(--text-secondary)';
   }
 
   function destroyPlots() {
@@ -69,9 +90,11 @@
 </script>
 
 {#if groups.length}
-  <div class="charts">
+  <div class="charts" style:--u-surface={theme.surface} style:--u-baseline={theme.baseline}>
     {#each groups as [units], gi (units)}
-      <div class="chart-container" bind:this={containers[gi]}></div>
+      <div class="chart-card">
+        <div class="chart-container" bind:this={containers[gi]}></div>
+      </div>
     {/each}
   </div>
 {:else}
@@ -82,13 +105,33 @@
   .charts {
     display: flex;
     flex-direction: column;
-    gap: 0.5rem;
+    gap: 0.75rem;
+  }
+  .chart-card {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: var(--radius-md);
+    padding: 0.75rem;
+    box-shadow: var(--shadow-card);
   }
   .chart-container {
     width: 100%;
   }
   .note {
-    opacity: 0.7;
+    color: var(--text-muted);
     font-size: 0.9rem;
+  }
+
+  /* uPlot chrome: axis/legend text and title inherit the app's ink tokens (canvas
+     drawing is themed separately via lib/theme.ts, since canvas can't read CSS
+     variables). */
+  .charts :global(.u-title) {
+    color: var(--text-primary);
+    font-size: 0.85rem;
+    font-weight: 600;
+  }
+  .charts :global(.u-legend th) {
+    color: var(--text-secondary);
+    font-weight: 400;
   }
 </style>

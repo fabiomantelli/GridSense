@@ -23,68 +23,91 @@
   const rows = $derived(Array.from({ length: rowCount }, (_, i) => i));
 </script>
 
-<p class="summary">
-  {metadata.station_name} / {metadata.device_id} — {timestamps.length} samples,
-  {metadata.analog_channels.length} analog, {metadata.digital_channels.length} digital
-  {#if timestamps.length > maxRows}
-    (showing first {maxRows})
-  {/if}
-</p>
-
-<div class="table-scroll">
-  <table>
-    <thead>
-      <tr>
-        <th>t (µs)</th>
-        {#each analogColumns as col}
-          <th>{col.def.id} ({col.def.units})</th>
-        {/each}
-        {#each digitalColumns as col}
-          <th>{col.def.id}</th>
-        {/each}
-      </tr>
-    </thead>
-    <tbody>
-      {#each rows as row}
+<details class="raw-table">
+  <summary>
+    {timestamps.length} amostras, {metadata.analog_channels.length} analógicas, {metadata.digital_channels.length}
+    digitais
+    {#if timestamps.length > maxRows}
+      &nbsp;(mostrando as primeiras {maxRows})
+    {/if}
+  </summary>
+  <div class="table-scroll">
+    <table>
+      <thead>
         <tr>
-          <td>{timestamps[row].toFixed(1)}</td>
+          <th>t (µs)</th>
           {#each analogColumns as col}
-            <td>{col.values[row].toFixed(3)}</td>
+            <th>{col.def.id} ({col.def.units})</th>
           {/each}
           {#each digitalColumns as col}
-            <td>{col.values[row] ? '1' : '0'}</td>
+            <th>{col.def.id}</th>
           {/each}
         </tr>
-      {/each}
-    </tbody>
-  </table>
-</div>
+      </thead>
+      <tbody>
+        {#each rows as row}
+          <tr>
+            <td>{timestamps[row].toFixed(1)}</td>
+            {#each analogColumns as col}
+              <td>{col.values[row].toFixed(3)}</td>
+            {/each}
+            {#each digitalColumns as col}
+              <td>{col.values[row] ? '1' : '0'}</td>
+            {/each}
+          </tr>
+        {/each}
+      </tbody>
+    </table>
+  </div>
+</details>
 
 <style>
+  .raw-table {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: var(--radius-md);
+    box-shadow: var(--shadow-card);
+  }
+  summary {
+    cursor: pointer;
+    padding: 0.7rem 1rem;
+    font-size: 0.85rem;
+    color: var(--text-secondary);
+    user-select: none;
+  }
+  summary::marker {
+    color: var(--text-muted);
+  }
   .table-scroll {
-    overflow-x: auto;
+    overflow: auto;
     max-height: 60vh;
-    overflow-y: auto;
+    border-top: 1px solid var(--border);
   }
   table {
     border-collapse: collapse;
     font-variant-numeric: tabular-nums;
-    font-size: 0.85rem;
+    font-size: 0.82rem;
+    width: 100%;
   }
   th,
   td {
-    border: 1px solid #444;
-    padding: 0.25rem 0.5rem;
+    padding: 0.3rem 0.6rem;
     text-align: right;
     white-space: nowrap;
+  }
+  td {
+    border-bottom: 1px solid var(--border);
+  }
+  tbody tr:nth-child(even) {
+    background: var(--page);
   }
   th {
     position: sticky;
     top: 0;
-    background: var(--table-header-bg, #222);
-  }
-  .summary {
-    font-size: 0.9rem;
-    opacity: 0.8;
+    background: var(--surface-raised);
+    color: var(--text-muted);
+    font-weight: 500;
+    font-size: 0.75rem;
+    border-bottom: 1px solid var(--border-strong);
   }
 </style>

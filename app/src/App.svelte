@@ -69,28 +69,35 @@
   });
 </script>
 
-<main>
-  <h1>Utility Investigator</h1>
-  <p class="tagline">Drop a COMTRADE file pair. Parsing happens entirely in your browser — nothing is uploaded.</p>
+<header class="app-header">
+  <div class="brand">
+    <svg class="mark" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+      <path d="M2 12h4l2-7 4 14 3-10 2 3h5" />
+    </svg>
+    <span class="wordmark">Utility Investigator</span>
+  </div>
+  <span class="trust-badge">100% local · nada é enviado</span>
+</header>
 
+<main>
   <DropZone onFiles={handleFiles} />
 
   {#if loading}
-    <p>Parsing…</p>
+    <p class="note">Analisando…</p>
   {/if}
   {#if error}
     <p class="error">{error}</p>
   {/if}
   {#if pendingHalves.length}
     <p class="note">
-      Waiting for matching file:
+      Aguardando arquivo correspondente:
       {#each pendingHalves as p (p.stem + p.kind)}
         {p.stem}.{p.kind === 'cfg' ? 'dat' : 'cfg'}
       {/each}
     </p>
   {/if}
   {#if ignored.length}
-    <p class="note">Ignored (not .cfg/.dat): {ignored.map((f) => f.name).join(', ')}</p>
+    <p class="note">Ignorados (não .cfg/.dat): {ignored.map((f) => f.name).join(', ')}</p>
   {/if}
 
   {#if sessions.length}
@@ -106,7 +113,6 @@
     {#each sessions as s (s.stem)}
       {#if s.stem === activeStem}
         <section>
-          <h2>Analysis</h2>
           <FactsPanel handle={s.handle} />
         </section>
         <section>
@@ -118,7 +124,6 @@
           <DigitalTimeline metadata={s.metadata} handle={s.handle} />
         </section>
         <section>
-          <h2>Raw samples</h2>
           <ChannelTable metadata={s.metadata} handle={s.handle} />
         </section>
       {/if}
@@ -127,47 +132,80 @@
 </main>
 
 <style>
-  main {
-    max-width: 960px;
-    margin: 0 auto;
-    padding: 2rem 1rem;
-    font-family: system-ui, sans-serif;
+  .app-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 0.9rem 1.5rem;
+    border-bottom: 1px solid var(--border);
+    background: var(--surface);
   }
-  .tagline {
-    opacity: 0.7;
-    margin-top: -0.5rem;
+  .brand {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+  }
+  .mark {
+    width: 22px;
+    height: 22px;
+    color: var(--series-1);
+  }
+  .wordmark {
+    font-weight: 600;
+    font-size: 0.95rem;
+    letter-spacing: -0.01em;
+  }
+  .trust-badge {
+    font-size: 0.75rem;
+    color: var(--text-muted);
+    background: var(--page);
+    border: 1px solid var(--border);
+    border-radius: 999px;
+    padding: 0.25rem 0.7rem;
+  }
+
+  main {
+    max-width: 980px;
+    margin: 0 auto;
+    padding: 1.75rem 1.25rem 4rem;
   }
   section {
-    margin-top: 1.5rem;
+    margin-top: 1.75rem;
   }
   section h2 {
-    font-size: 1rem;
-    opacity: 0.8;
-    margin-bottom: 0.5rem;
+    font-size: 0.75rem;
+    font-weight: 600;
+    text-transform: uppercase;
+    letter-spacing: 0.04em;
+    color: var(--text-muted);
+    margin: 0 0 0.5rem;
   }
   .error {
-    color: #ff6b6b;
-  }
-  .note {
-    opacity: 0.8;
+    color: var(--status-critical);
     font-size: 0.9rem;
   }
+  .note {
+    color: var(--text-muted);
+    font-size: 0.85rem;
+  }
+
   .tabs {
     display: flex;
-    gap: 0.25rem;
-    margin: 1rem 0 0.5rem;
-    border-bottom: 1px solid #444;
+    gap: 0.3rem;
+    margin: 1.5rem 0 0;
+    flex-wrap: wrap;
   }
   .tab {
     display: flex;
     align-items: center;
-    border: 1px solid #444;
-    border-bottom: none;
-    border-radius: 4px 4px 0 0;
-    padding: 0 0.25rem 0 0.75rem;
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 999px;
+    padding: 0 0.3rem 0 0.9rem;
   }
   .tab.active {
-    background: rgba(255, 255, 255, 0.08);
+    border-color: var(--series-1);
+    background: color-mix(in srgb, var(--series-1) 10%, var(--surface));
   }
   .tab-select,
   .close {
@@ -175,12 +213,15 @@
     border: none;
     color: inherit;
     cursor: pointer;
-    padding: 0.4rem 0.25rem;
+    font-size: 0.85rem;
+    padding: 0.4rem 0.3rem;
   }
   .close {
-    opacity: 0.6;
+    color: var(--text-muted);
+    font-size: 1rem;
+    line-height: 1;
   }
   .close:hover {
-    opacity: 1;
+    color: var(--status-critical);
   }
 </style>

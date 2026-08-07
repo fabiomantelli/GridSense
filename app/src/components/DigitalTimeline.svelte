@@ -1,12 +1,15 @@
 <script lang="ts">
   import type { CfgFile } from '../lib/types';
   import type { ComtradeHandle } from '../wasm-pkg/gridsense_wasm';
+  import { resolveChartTheme } from '../lib/theme';
 
   let { metadata, handle }: { metadata: CfgFile; handle: ComtradeHandle } = $props();
 
+  const theme = resolveChartTheme();
+
   const WIDTH = 800;
-  const ROW_HEIGHT = 26;
-  const LABEL_WIDTH = 130;
+  const ROW_HEIGHT = 28;
+  const LABEL_WIDTH = 140;
   const PLOT_WIDTH = WIDTH - LABEL_WIDTH;
 
   interface Segment {
@@ -15,7 +18,7 @@
     state: boolean;
   }
 
-  // Session components are keyed by stem and never rebound to a different handle, so
+  // Session components are keyed by stem and never rebound to a different handle;
   // $derived here is only to satisfy Svelte's reactivity contract for prop reads.
   const timestampsMs: number[] = $derived(Array.from(handle.timestamps_f64(), (v) => v / 1000));
   const t0 = $derived(timestampsMs[0] ?? 0);
@@ -52,56 +55,65 @@
 </script>
 
 {#if channels.length}
-  <svg viewBox="0 0 {WIDTH} {channels.length * ROW_HEIGHT + 4}" class="digital-timeline" role="img"
-    aria-label="Digital channel state timeline">
-    {#each channels as ch, row}
-      <text x="0" y={row * ROW_HEIGHT + ROW_HEIGHT / 2 + 4} font-size="12" fill="currentColor">{ch.def.id}</text>
-      {#each ch.segments as seg}
-        <rect
-          x={LABEL_WIDTH + xPos(seg.startMs)}
-          y={row * ROW_HEIGHT + 3}
-          width={Math.max(1, xPos(seg.endMs) - xPos(seg.startMs))}
-          height={ROW_HEIGHT - 6}
-          fill={seg.state ? '#51cf66' : '#495057'}
-        />
+  <div class="timeline-card">
+    <svg
+      viewBox="0 0 {WIDTH} {channels.length * ROW_HEIGHT + 4}"
+      class="digital-timeline"
+      role="img"
+      aria-label="Digital channel state timeline"
+    >
+      {#each channels as ch, row}
+        <text x="0" y={row * ROW_HEIGHT + ROW_HEIGHT / 2 + 4} font-size="12" fill={theme.text}>{ch.def.id}</text>
+        {#each ch.segments as seg}
+          <rect
+            x={LABEL_WIDTH + xPos(seg.startMs)}
+            y={row * ROW_HEIGHT + 4}
+            width={Math.max(1, xPos(seg.endMs) - xPos(seg.startMs))}
+            height={ROW_HEIGHT - 8}
+            rx="2"
+            fill={seg.state ? theme.series[0] : theme.grid}
+          />
+        {/each}
       {/each}
-    {/each}
-  </svg>
-  <p class="legend">
-    <span class="swatch on"></span> closed/energized (1)
-    <span class="swatch off"></span> open/de-energized (0)
-  </p>
+    </svg>
+    <p class="legend">
+      <span class="swatch on" style:background={theme.series[0]}></span> 1 (energizado/fechado)
+      <span class="swatch off" style:background={theme.grid}></span> 0 (desenergizado/aberto)
+    </p>
+  </div>
 {:else}
   <p class="note">No digital channels in this record.</p>
 {/if}
 
 <style>
+  .timeline-card {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: var(--radius-md);
+    padding: 0.75rem;
+    box-shadow: var(--shadow-card);
+  }
   .digital-timeline {
     width: 100%;
     height: auto;
   }
   .legend {
-    font-size: 0.8rem;
-    opacity: 0.75;
+    font-size: 0.78rem;
+    color: var(--text-muted);
     display: flex;
     align-items: center;
     gap: 0.35rem;
+    margin: 0.6rem 0 0;
   }
   .swatch {
     display: inline-block;
-    width: 0.8rem;
-    height: 0.8rem;
+    width: 0.75rem;
+    height: 0.75rem;
     border-radius: 2px;
     margin-left: 0.5rem;
   }
-  .swatch.on {
-    background: #51cf66;
-  }
-  .swatch.off {
-    background: #495057;
-  }
   .note {
-    opacity: 0.7;
+    color: var(--text-muted);
     font-size: 0.9rem;
   }
 </style>

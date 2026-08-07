@@ -6,6 +6,17 @@
     <title>Utility Investigator</title>
   </head>
   <body>
+    <!-- Runs before the app mounts so both CSS tokens and canvas-drawn chart
+         chrome (lib/theme.ts) agree on the theme from first paint. `?theme=` is
+         a manual override for testing; a real in-app toggle would write here too. -->
+    <script>
+      (function () {
+        var forced = new URLSearchParams(location.search).get('theme');
+        if (forced === 'light' || forced === 'dark') {
+          document.documentElement.setAttribute('data-theme', forced);
+        }
+      })();
+    </script>
     <div id="app"></div>
     <script type="module" src="/src/main.ts"></script>
   </body>
