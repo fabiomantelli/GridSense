@@ -127,7 +127,18 @@
       height: 280,
       scales: { x: { time: true } },
       axes: [
-        { ...axisCommon, label: 'time', values: (_u, splits) => splits.map(formatAbsoluteTick) },
+        {
+          ...axisCommon,
+          label: 'time',
+          values: (_u, splits) => splits.map(formatAbsoluteTick),
+          // uPlot's tick-density picker assumes a fixed 50px/label (its default
+          // `space`) regardless of what the axis's `values` fn actually renders —
+          // it never measures real text. "HH:MM:ss.mmm" measures ~66px at this
+          // font, so the default would let ticks land closer together than the
+          // labels are wide. A little over the measured width keeps a visible gap
+          // at any zoom level instead of letting labels touch or overlap.
+          space: 90,
+        },
         { ...axisCommon, label: units, size: 56 },
       ],
       series,
