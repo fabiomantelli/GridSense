@@ -61,45 +61,9 @@
     ctx.restore();
   }
 
-  function createTooltip(container: HTMLElement): HTMLDivElement {
-    const el = document.createElement('div');
-    el.className = 'chart-tooltip';
-    el.style.display = 'none';
-    container.appendChild(el);
-    return el;
-  }
-
-  function renderTooltip(el: HTMLDivElement, u: uPlot, idx: number) {
-    el.replaceChildren();
-    const xRow = document.createElement('div');
-    xRow.className = 'tt-x';
-    xRow.textContent = `${(u.data[0][idx] as number).toFixed(1)} ms`;
-    el.appendChild(xRow);
-
-    for (let si = 1; si < u.series.length; si++) {
-      const val = u.data[si][idx] as number | null;
-      if (val == null) continue;
-      const row = document.createElement('div');
-      row.className = 'tt-row';
-      const key = document.createElement('span');
-      key.className = 'tt-key';
-      key.style.background = String(u.series[si].stroke ?? '');
-      const value = document.createElement('span');
-      value.className = 'tt-val';
-      value.textContent = val.toFixed(3);
-      const label = document.createElement('span');
-      label.className = 'tt-label';
-      label.textContent = String(u.series[si].label ?? '');
-      row.append(key, value, label);
-      el.appendChild(row);
-    }
-  }
-
   function buildPlots() {
     plots = groups.map(([units, indices], gi) => {
       const el = containers[gi];
-      el.style.position = 'relative';
-      const tooltipEl = createTooltip(el);
 
       const data = [timestampsMs, ...indices.map((idx) => handle.analog_channel_f32(idx))] as unknown as uPlot.AlignedData;
       const series: uPlot.Series[] = [
@@ -143,21 +107,6 @@
                 u.setScale('x', { min, max });
               }
               u.setSelect({ left: 0, top: 0, width: 0, height: 0 }, false);
-            },
-          ],
-          setCursor: [
-            (u) => {
-              const idx = u.cursor.idx;
-              if (idx == null || u.cursor.left == null || u.cursor.left < 0) {
-                tooltipEl.style.display = 'none';
-                return;
-              }
-              renderTooltip(tooltipEl, u, idx);
-              tooltipEl.style.display = 'block';
-              const maxLeft = el.clientWidth - tooltipEl.offsetWidth - 8;
-              const left = Math.min((u.cursor.left ?? 0) + 14, Math.max(8, maxLeft));
-              tooltipEl.style.left = `${left}px`;
-              tooltipEl.style.top = '8px';
             },
           ],
         },
@@ -259,42 +208,5 @@
   .charts :global(.u-select) {
     background: color-mix(in srgb, var(--series-1) 15%, transparent);
     border: 1px solid var(--series-1);
-  }
-
-  /* Floating tooltip, built imperatively alongside the uPlot instance (see
-     createTooltip/renderTooltip) since the chart itself is canvas-drawn. */
-  .charts :global(.chart-tooltip) {
-    position: absolute;
-    z-index: 10;
-    pointer-events: none;
-    background: var(--surface-raised);
-    border: 1px solid var(--border-strong);
-    border-radius: var(--radius-sm);
-    box-shadow: var(--shadow-card);
-    padding: 0.4rem 0.6rem;
-    font-size: 0.78rem;
-    white-space: nowrap;
-  }
-  .charts :global(.chart-tooltip .tt-x) {
-    color: var(--text-muted);
-    margin-bottom: 0.2rem;
-  }
-  .charts :global(.chart-tooltip .tt-row) {
-    display: flex;
-    align-items: center;
-    gap: 0.4rem;
-  }
-  .charts :global(.chart-tooltip .tt-key) {
-    width: 10px;
-    height: 2px;
-    flex-shrink: 0;
-  }
-  .charts :global(.chart-tooltip .tt-val) {
-    font-variant-numeric: tabular-nums;
-    font-weight: 600;
-    color: var(--text-primary);
-  }
-  .charts :global(.chart-tooltip .tt-label) {
-    color: var(--text-secondary);
   }
 </style>
