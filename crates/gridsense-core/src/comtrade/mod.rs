@@ -2,6 +2,7 @@ pub mod cfg;
 pub mod dat;
 pub mod error;
 pub mod model;
+pub mod timestamp;
 
 pub use error::ComtradeError;
 pub use model::{

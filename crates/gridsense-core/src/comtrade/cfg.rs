@@ -2,6 +2,7 @@ use super::error::ComtradeError;
 use super::model::{
     AnalogChannelDef, CfgFile, DatFormat, DigitalChannelDef, Revision, SampleRateSegment,
 };
+use super::timestamp;
 
 /// Sequential reader over the .cfg file's lines, giving each parsing step access to the
 /// next raw line (for lines consumed as a single blob, e.g. timestamps) or its
@@ -204,8 +205,10 @@ pub fn parse_cfg(text: &str) -> Result<CfgFile, ComtradeError> {
     }
     let total_samples = sample_rates.last().map(|s| s.end_sample).unwrap_or(0);
 
-    // Start / trigger timestamps — kept as raw display strings for v1 (see plan: full
-    // calendar parsing is low-value since the plot time axis comes from sample rate).
+    // Start / trigger timestamps — kept as raw display strings (vendor formatting
+    // varies enough that round-tripping the original text verbatim is the safest
+    // display default), but the start timestamp is also parsed into an absolute
+    // epoch anchor below for cross-record time alignment.
     let timestamp_start_raw = r
         .next_raw()
         .ok_or(ComtradeError::TruncatedCfg { expected: "start timestamp line" })?
@@ -214,6 +217,7 @@ pub fn parse_cfg(text: &str) -> Result<CfgFile, ComtradeError> {
         .next_raw()
         .ok_or(ComtradeError::TruncatedCfg { expected: "trigger timestamp line" })?
         .to_string();
+    let start_epoch_us = timestamp::parse_comtrade_timestamp(&timestamp_start_raw);
 
     // DAT file type.
     let dat_format = r
@@ -241,6 +245,7 @@ pub fn parse_cfg(text: &str) -> Result<CfgFile, ComtradeError> {
         total_samples,
         timestamp_start_raw,
         timestamp_trigger_raw,
+        start_epoch_us,
         dat_format,
         time_multiplier,
     })

@@ -182,6 +182,11 @@ fn parses_multi_channel_fault_event_fixture() {
     assert!(record.digital_samples[0][353]);
     assert!(!record.digital_samples[0][354]);
     assert!(!record.digital_samples[0][599]);
+
+    // End-to-end wiring check (not just the parser in isolation, see
+    // comtrade_timestamp_tests.rs): cfg.rs actually threads timestamp_start_raw
+    // ("01/01/2026,00:00:00.000000") through to start_epoch_us.
+    assert_eq!(record.cfg.start_epoch_us, Some(1_767_225_600_000_000.0));
 }
 
 #[test]

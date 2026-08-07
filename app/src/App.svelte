@@ -5,20 +5,14 @@
   import WaveformChart from './components/WaveformChart.svelte';
   import DigitalTimeline from './components/DigitalTimeline.svelte';
   import FactsPanel from './components/FactsPanel.svelte';
+  import CompareView from './components/CompareView.svelte';
   import { pairComtradeFiles, type ComtradePair, type PendingHalf } from './lib/filePairing';
   import { loadComtrade, disposeRecord } from './lib/wasm';
-  import type { AnalysisFacts, CfgFile } from './lib/types';
-  import type { ComtradeHandle } from './wasm-pkg/gridsense_wasm';
-
-  interface Session {
-    stem: string;
-    metadata: CfgFile;
-    handle: ComtradeHandle;
-    facts: AnalysisFacts;
-  }
+  import type { Session } from './lib/types';
 
   let sessions = $state<Session[]>([]);
   let activeStem = $state<string | null>(null);
+  let viewMode = $state<'single' | 'compare'>('single');
   let pendingHalves = $state<PendingHalf[]>([]);
   let ignored = $state<File[]>([]);
   let loading = $state(false);
@@ -102,32 +96,44 @@
   {/if}
 
   {#if sessions.length}
-    <div class="tabs">
-      {#each sessions as s (s.stem)}
-        <div class="tab" class:active={s.stem === activeStem}>
-          <button class="tab-select" onclick={() => (activeStem = s.stem)}>{s.stem}</button>
-          <button class="close" aria-label="Close {s.stem}" onclick={() => closeSession(s.stem)}>×</button>
-        </div>
-      {/each}
-    </div>
+    {#if sessions.length >= 2}
+      <div class="mode-toggle">
+        <button onclick={() => (viewMode = viewMode === 'compare' ? 'single' : 'compare')}>
+          {viewMode === 'compare' ? '← Back to sessions' : 'Compare records →'}
+        </button>
+      </div>
+    {/if}
 
-    {#each sessions as s (s.stem)}
-      {#if s.stem === activeStem}
-        <section>
-          <FactsPanel facts={s.facts} />
-        </section>
-        <section>
-          <h2>Waveforms</h2>
-          <WaveformChart metadata={s.metadata} handle={s.handle} facts={s.facts} />
-        </section>
-        <section>
-          <DigitalTimeline metadata={s.metadata} handle={s.handle} />
-        </section>
-        <section>
-          <ChannelTable metadata={s.metadata} handle={s.handle} />
-        </section>
-      {/if}
-    {/each}
+    {#if viewMode === 'compare'}
+      <CompareView {sessions} />
+    {:else}
+      <div class="tabs">
+        {#each sessions as s (s.stem)}
+          <div class="tab" class:active={s.stem === activeStem}>
+            <button class="tab-select" onclick={() => (activeStem = s.stem)}>{s.stem}</button>
+            <button class="close" aria-label="Close {s.stem}" onclick={() => closeSession(s.stem)}>×</button>
+          </div>
+        {/each}
+      </div>
+
+      {#each sessions as s (s.stem)}
+        {#if s.stem === activeStem}
+          <section>
+            <FactsPanel facts={s.facts} />
+          </section>
+          <section>
+            <h2>Waveforms</h2>
+            <WaveformChart metadata={s.metadata} handle={s.handle} facts={s.facts} />
+          </section>
+          <section>
+            <DigitalTimeline metadata={s.metadata} handle={s.handle} />
+          </section>
+          <section>
+            <ChannelTable metadata={s.metadata} handle={s.handle} />
+          </section>
+        {/if}
+      {/each}
+    {/if}
   {/if}
 </main>
 
@@ -189,10 +195,27 @@
     font-size: 0.85rem;
   }
 
+  .mode-toggle {
+    margin-top: 1.5rem;
+  }
+  .mode-toggle button {
+    background: var(--surface);
+    border: 1px solid var(--border-strong);
+    border-radius: var(--radius-sm);
+    padding: 0.4rem 0.8rem;
+    font-size: 0.82rem;
+    color: var(--text-secondary);
+    cursor: pointer;
+  }
+  .mode-toggle button:hover {
+    border-color: var(--series-1);
+    color: var(--series-1);
+  }
+
   .tabs {
     display: flex;
     gap: 0.3rem;
-    margin: 1.5rem 0 0;
+    margin: 1rem 0 0;
     flex-wrap: wrap;
   }
   .tab {

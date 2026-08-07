@@ -68,6 +68,11 @@ pub struct CfgFile {
     pub total_samples: u32,
     pub timestamp_start_raw: String,
     pub timestamp_trigger_raw: String,
+    /// Absolute start time as microseconds since the Unix epoch, parsed from
+    /// `timestamp_start_raw`. `None` if that field was missing/malformed.
+    /// `timestamps_us` on `ComtradeRecord` stays relative regardless — absolute
+    /// per-sample time is `start_epoch_us + timestamps_us[i]`.
+    pub start_epoch_us: Option<f64>,
     pub dat_format: DatFormat,
     pub time_multiplier: f64,
 }

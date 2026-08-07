@@ -2,6 +2,8 @@
 // unchanged by serde-wasm-bindgen). Keep in sync by hand until the surface grows
 // enough to justify generating this from the Rust types.
 
+import type { ComtradeHandle } from '../wasm-pkg/gridsense_wasm';
+
 export type Revision = 'Y1991' | 'Y1999' | 'Y2013';
 export type DatFormat = 'Ascii' | 'Binary16' | 'Binary32' | 'Float32';
 
@@ -45,6 +47,10 @@ export interface CfgFile {
   total_samples: number;
   timestamp_start_raw: string;
   timestamp_trigger_raw: string;
+  /** Microseconds since the Unix epoch, parsed from timestamp_start_raw; null if
+   *  that field was missing/malformed. Absolute per-sample time is
+   *  start_epoch_us + (timestamps_us from the WASM handle). */
+  start_epoch_us: number | null;
   dat_format: DatFormat;
   time_multiplier: number;
 }
@@ -102,4 +108,12 @@ export interface AnalysisFacts {
   channel_summaries: ChannelSummary[];
   sequence_component_groups: SequenceGroupResult[];
   events: EventClassification[];
+}
+
+/** One loaded COMTRADE record and its precomputed analysis, keyed by file stem. */
+export interface Session {
+  stem: string;
+  metadata: CfgFile;
+  handle: ComtradeHandle;
+  facts: AnalysisFacts;
 }
