@@ -24,7 +24,7 @@
   });
 
   // Selected units, in the same stable order they appear as pills — not selection
-  // order, so the record table's columns don't reshuffle as the user clicks pills.
+  // order, so quantity sections don't reshuffle as the user clicks pills.
   const selectedUnitsOrdered = $derived(availableUnits.filter((u) => selectedUnits.has(u)));
 
   function matchingChannels(unit: string, s: Session): { index: number; id: string }[] {
@@ -34,12 +34,13 @@
       .map(({ index, id }) => ({ index, id }));
   }
 
+  // Record inclusion depends only on having an absolute timestamp to align on — not
+  // on which quantities happen to be selected right now. That keeps this list's
+  // shape (and every checkbox's position) fixed no matter how many quantity pills
+  // are toggled, instead of the whole section reshaping on every click.
   function disabledReasonFor(s: Session): string | null {
     if (s.metadata.start_epoch_us == null) {
       return "No absolute timestamp available in this record's .cfg — can't align on a synchronized time axis.";
-    }
-    if (selectedUnitsOrdered.length > 0 && !selectedUnitsOrdered.some((u) => matchingChannels(u, s).length > 0)) {
-      return `No ${selectedUnitsOrdered.join('/')} channels in this record.`;
     }
     return null;
   }
@@ -93,9 +94,16 @@
     channelIndex: number;
   }
 
+  // Included records that actually have a channel for this unit — records without
+  // one just don't appear in this quantity's picker, rather than cluttering it with
+  // a disabled "no channel" row.
+  function eligibleForUnit(unit: string): Session[] {
+    return sessions.filter((s) => included.has(s.stem) && matchingChannels(unit, s).length > 0);
+  }
+
   function recordsForUnit(unit: string): RecordSelection[] {
-    return sessions
-      .filter((s) => included.has(s.stem) && channelChoice[unit]?.[s.stem] != null)
+    return eligibleForUnit(unit)
+      .filter((s) => channelChoice[unit]?.[s.stem] != null)
       .map((s) => ({
         stem: s.stem,
         metadata: s.metadata,
@@ -120,62 +128,57 @@
     {/if}
   </section>
 
-  {#if selectedUnitsOrdered.length}
-    <section class="card">
-      <h3>2. Pick records and a channel for each quantity</h3>
-      <div class="session-table">
-        <div class="session-row header">
-          <span class="record-col"></span>
-          {#each selectedUnitsOrdered as unit}
-            <span class="unit-col">{unit}</span>
-          {/each}
+  <section class="card">
+    <h3>2. Pick records to include</h3>
+    <div class="session-list">
+      {#each sessions as s (s.stem)}
+        {@const reason = disabledReasonFor(s)}
+        <div class="session-row" class:disabled={reason != null}>
+          <label>
+            <input type="checkbox" disabled={reason != null} checked={included.has(s.stem)} onchange={() => toggleIncluded(s)} />
+            {s.stem}
+          </label>
+          {#if reason}
+            <span class="reason">{reason}</span>
+          {/if}
         </div>
-        {#each sessions as s (s.stem)}
-          {@const reason = disabledReasonFor(s)}
-          <div class="session-row" class:disabled={reason != null}>
-            <label class="record-col">
-              <input type="checkbox" disabled={reason != null} checked={included.has(s.stem)} onchange={() => toggleIncluded(s)} />
-              {s.stem}
-            </label>
-            {#if reason}
-              <span class="reason">{reason}</span>
-            {:else}
-              {#each selectedUnitsOrdered as unit}
-                {@const channels = matchingChannels(unit, s)}
-                <span class="unit-col">
-                  {#if !included.has(s.stem) || channels.length === 0}
-                    <span class="dash">—</span>
-                  {:else}
-                    <select value={channelChoice[unit]?.[s.stem]} onchange={(e) => setChannel(unit, s.stem, e)}>
-                      {#each channels as ch}
-                        <option value={ch.index}>{ch.id}</option>
-                      {/each}
-                    </select>
-                  {/if}
-                </span>
-              {/each}
-            {/if}
-          </div>
-        {/each}
-      </div>
-      {#if included.size > 4}
-        <p class="note">Comparing more than about 4 records at once can be hard to read even with the legend.</p>
-      {/if}
-    </section>
-  {/if}
+      {/each}
+    </div>
+    {#if included.size > 4}
+      <p class="note">Comparing more than about 4 records at once can be hard to read even with the legend.</p>
+    {/if}
+  </section>
 
   {#each selectedUnitsOrdered as unit (unit)}
+    {@const eligible = eligibleForUnit(unit)}
     {@const unitRecords = recordsForUnit(unit)}
-    {#if unitRecords.length}
-      <details class="chart-card" open>
-        <summary>{unit} comparison — {unitRecords.length} record{unitRecords.length === 1 ? '' : 's'}</summary>
-        <div class="content">
-          {#key unitRecords.map((r) => `${r.stem}:${r.channelIndex}`).join(',')}
-            <MultiRecordChart records={unitRecords} units={unit} />
-          {/key}
-        </div>
-      </details>
-    {/if}
+    <details class="chart-card" open>
+      <summary>{unit}{#if unitRecords.length}&nbsp;— {unitRecords.length} record{unitRecords.length === 1 ? '' : 's'}{/if}</summary>
+      <div class="content">
+        {#if eligible.length === 0}
+          <p class="note">None of the included records have a {unit} channel.</p>
+        {:else}
+          <div class="channel-picker">
+            {#each eligible as s (s.stem)}
+              {@const channels = matchingChannels(unit, s)}
+              <label class="channel-row">
+                <span class="stem">{s.stem}</span>
+                <select value={channelChoice[unit]?.[s.stem]} onchange={(e) => setChannel(unit, s.stem, e)}>
+                  {#each channels as ch}
+                    <option value={ch.index}>{ch.id}</option>
+                  {/each}
+                </select>
+              </label>
+            {/each}
+          </div>
+          {#if unitRecords.length}
+            {#key unitRecords.map((r) => `${r.stem}:${r.channelIndex}`).join(',')}
+              <MultiRecordChart records={unitRecords} units={unit} />
+            {/key}
+          {/if}
+        {/if}
+      </div>
+    </details>
   {/each}
 </div>
 
@@ -218,10 +221,10 @@
     color: var(--text-primary);
   }
 
-  .session-table {
+  .session-list {
     display: flex;
     flex-direction: column;
-    gap: 0.4rem;
+    gap: 0.6rem;
   }
   .session-row {
     display: flex;
@@ -229,39 +232,14 @@
     gap: 0.75rem;
     font-size: 0.88rem;
   }
-  .session-row.header {
-    font-size: 0.75rem;
-    font-weight: 600;
-    text-transform: uppercase;
-    letter-spacing: 0.04em;
-    color: var(--text-muted);
-    padding-bottom: 0.3rem;
-    border-bottom: 1px solid var(--border);
-  }
   .session-row.disabled {
     color: var(--text-muted);
   }
-  .record-col {
+  .session-row label {
     display: flex;
     align-items: center;
     gap: 0.4rem;
     min-width: 12rem;
-    flex-shrink: 0;
-  }
-  .unit-col {
-    flex: 1;
-    min-width: 6rem;
-  }
-  .session-row select {
-    width: 100%;
-    background: var(--page);
-    border: 1px solid var(--border-strong);
-    border-radius: var(--radius-sm);
-    padding: 0.2rem 0.5rem;
-    color: var(--text-primary);
-  }
-  .dash {
-    color: var(--text-muted);
   }
   .reason {
     font-size: 0.8rem;
@@ -290,8 +268,33 @@
     color: var(--text-muted);
   }
   .chart-card .content {
-    padding: 0 1rem 1rem;
+    padding: 0.9rem 1rem 1rem;
     border-top: 1px solid var(--border);
-    padding-top: 0.9rem;
+  }
+  .chart-card .note {
+    margin: 0;
+  }
+
+  .channel-picker {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.6rem 1.25rem;
+    margin-bottom: 0.9rem;
+  }
+  .channel-row {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    font-size: 0.85rem;
+  }
+  .channel-row .stem {
+    color: var(--text-secondary);
+  }
+  .channel-row select {
+    background: var(--page);
+    border: 1px solid var(--border-strong);
+    border-radius: var(--radius-sm);
+    padding: 0.2rem 0.5rem;
+    color: var(--text-primary);
   }
 </style>
