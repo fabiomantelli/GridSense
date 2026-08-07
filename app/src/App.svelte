@@ -36,7 +36,19 @@
         const cfgBytes = new Uint8Array(await pair.cfg.arrayBuffer());
         const datBytes = new Uint8Array(await pair.dat.arrayBuffer());
         const { handle, metadata, facts } = await loadComtrade(cfgBytes, datBytes);
-        sessions = [...sessions, { stem: pair.stem, metadata, handle, facts }];
+        const newSession = { stem: pair.stem, metadata, handle, facts };
+        // Re-dropping a file with the same stem (e.g. re-testing, or a vendor tool
+        // re-exporting the same record) replaces the existing session in place —
+        // appending a second entry with the same stem produced two rows sharing one
+        // Svelte keyed-each key, which Svelte can't render and silently ignores,
+        // making the reload look like it did nothing.
+        const existingIdx = sessions.findIndex((s) => s.stem === pair.stem);
+        if (existingIdx === -1) {
+          sessions = [...sessions, newSession];
+        } else {
+          disposeRecord(sessions[existingIdx]);
+          sessions = sessions.map((s, i) => (i === existingIdx ? newSession : s));
+        }
         activeStem = pair.stem;
       }
     } catch (e) {
