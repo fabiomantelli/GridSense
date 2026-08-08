@@ -129,6 +129,17 @@
   }
   .digital-timeline {
     width: 100%;
+    /* This SVG's viewBox is a fixed 800 user-units wide (see WIDTH in the
+       script), and every row/label/font-size in it is sized in those same
+       user-units — width:100% + height:auto scales the *whole* coordinate
+       system uniformly to fill the container, text included. That was a
+       barely-there ~1.15x stretch back when the page was capped at 980px, but
+       ballooned to ~1.9x (a 12px label rendering at ~23px) once the app's
+       main content width grew to 1600px for the waveform-lane redesign — this
+       component just never got revisited for that change. Capping at 800px
+       keeps text at its designed size on any wider viewport; width:100% still
+       shrinks it proportionally (text included) on anything narrower. */
+    max-width: 800px;
     height: auto;
   }
   .legend {
