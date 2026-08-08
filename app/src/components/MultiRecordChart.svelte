@@ -125,6 +125,8 @@
   let container = $state<HTMLDivElement | undefined>(undefined);
   let plot: uPlot | undefined;
   let isReady = false;
+  let isExpanded = $state(false);
+  let resizeObserver: ResizeObserver | undefined;
 
   function buildPlot() {
     if (!container) return;
@@ -203,6 +205,25 @@
     plot = new uPlot(opts, data, container);
     if (initialRange) plot.setScale('x', { min: initialRange[0], max: initialRange[1] });
     container.ondblclick = () => resetZoom();
+
+    // uPlot sizes itself once at construction and never re-measures its container on
+    // its own — needed so the canvas actually grows/shrinks when the expand toggle
+    // (or a window resize) changes the container's real size. setSize's `height`
+    // governs only the plotting area (axes+canvas); the legend renders as extra DOM
+    // below that inside the same container. Feeding it container.clientHeight
+    // directly would leave no room for the legend — it'd overflow past the
+    // container's own box — and since that overflow grows the container's natural
+    // content height too, every observation would ratchet the canvas taller than
+    // the last forever. Subtracting the legend's own (canvas-independent) height
+    // keeps the whole uPlot root inside the container it was actually given.
+    resizeObserver = new ResizeObserver(() => {
+      if (!container || !plot) return;
+      const legendHeight = container.querySelector<HTMLElement>('.u-legend')?.offsetHeight ?? 0;
+      const width = container.clientWidth;
+      const height = container.clientHeight - legendHeight;
+      if (width > 0 && height > 0) plot.setSize({ width, height });
+    });
+    resizeObserver.observe(container);
   }
 
   function resetZoom() {
@@ -210,25 +231,65 @@
   }
 
   function destroyPlot() {
+    resizeObserver?.disconnect();
+    resizeObserver = undefined;
     plot?.destroy();
     plot = undefined;
   }
+
+  function toggleExpand() {
+    isExpanded = !isExpanded;
+  }
+
+  // While expanded, the chart takes over the viewport like a lightbox: Esc closes it
+  // (the discoverable, expected way out of any full-screen-ish overlay) and the page
+  // behind it stops scrolling so the two scroll contexts don't fight each other.
+  $effect(() => {
+    if (!isExpanded) return;
+    const previousOverflow = document.body.style.overflow;
+    document.body.style.overflow = 'hidden';
+    function onKeydown(e: KeyboardEvent) {
+      if (e.key === 'Escape') isExpanded = false;
+    }
+    window.addEventListener('keydown', onKeydown);
+    return () => {
+      document.body.style.overflow = previousOverflow;
+      window.removeEventListener('keydown', onKeydown);
+    };
+  });
 
   onMount(buildPlot);
   onDestroy(destroyPlot);
 </script>
 
-<div class="toolbar">
-  <button class="reset-zoom" onclick={resetZoom}>Reset zoom</button>
-  <span class="hint">drag to zoom · double-click to reset</span>
-</div>
-<div class="chart-card">
+{#snippet expandIcon()}
+  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+    <path d="M8 3H5a2 2 0 00-2 2v3M16 3h3a2 2 0 012 2v3M21 16v3a2 2 0 01-2 2h-3M8 21H5a2 2 0 01-2-2v-3" />
+  </svg>
+{/snippet}
+{#snippet shrinkIcon()}
+  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+    <path d="M9 3v3a2 2 0 01-2 2H4M15 3v3a2 2 0 002 2h3M21 15h-3a2 2 0 00-2 2v3M3 15h3a2 2 0 012 2v3" />
+  </svg>
+{/snippet}
+
+{#if isExpanded}
+  <button class="backdrop" onclick={toggleExpand} aria-label="Exit fullscreen"></button>
+{/if}
+<div class="chart-card" class:expanded={isExpanded}>
+  <div class="toolbar">
+    <button class="reset-zoom" onclick={resetZoom}>Reset zoom</button>
+    <span class="hint">drag to zoom · double-click to reset{isExpanded ? ' · Esc to exit' : ''}</span>
+    <button class="expand-toggle" onclick={toggleExpand} aria-label={isExpanded ? 'Exit fullscreen' : 'Expand chart'}>
+      {@render (isExpanded ? shrinkIcon : expandIcon)()}
+    </button>
+  </div>
   <div class="chart-container" bind:this={container}></div>
+  <p class="caption">
+    Times shown in your browser's local timezone — source .cfg files carry no UTC offset, so this is a direct read of
+    each record's timestamp, not a corrected one.
+  </p>
 </div>
-<p class="caption">
-  Times shown in your browser's local timezone — source .cfg files carry no UTC offset, so this is a direct read of
-  each record's timestamp, not a corrected one.
-</p>
 
 <style>
   .toolbar {
@@ -254,12 +315,54 @@
     font-size: 0.75rem;
     color: var(--text-muted);
   }
+  .expand-toggle {
+    margin-left: auto;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    background: var(--surface);
+    border: 1px solid var(--border-strong);
+    border-radius: var(--radius-sm);
+    padding: 0.3rem;
+    color: var(--text-secondary);
+    cursor: pointer;
+  }
+  .expand-toggle:hover {
+    border-color: var(--series-1);
+    color: var(--series-1);
+  }
+  .expand-toggle svg {
+    width: 16px;
+    height: 16px;
+    display: block;
+  }
   .chart-card {
     background: var(--surface);
     border: 1px solid var(--border);
     border-radius: var(--radius-md);
     padding: 0.75rem;
     box-shadow: var(--shadow-card);
+  }
+  .chart-card.expanded {
+    position: fixed;
+    inset: 2rem;
+    z-index: 100;
+    display: flex;
+    flex-direction: column;
+    overflow: auto;
+  }
+  .chart-card.expanded .chart-container {
+    flex: 1;
+    min-height: 0;
+  }
+  .backdrop {
+    position: fixed;
+    inset: 0;
+    z-index: 90;
+    background: rgba(0, 0, 0, 0.6);
+    border: none;
+    padding: 0;
+    cursor: default;
   }
   .chart-container {
     width: 100%;
