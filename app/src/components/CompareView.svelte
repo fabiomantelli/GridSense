@@ -78,6 +78,22 @@
     selectedUnits = next;
   }
 
+  function selectAllUnits() {
+    const next = new Set(selectedUnits);
+    for (const unit of availableUnits) {
+      if (next.has(unit)) continue;
+      next.add(unit);
+      for (const s of sessions) {
+        if (included.has(s.stem)) defaultChannel(unit, s);
+      }
+    }
+    selectedUnits = next;
+  }
+
+  function clearUnits() {
+    selectedUnits = new Set();
+  }
+
   function toggleIncluded(s: Session) {
     const next = new Set(included);
     if (next.has(s.stem)) {
@@ -138,7 +154,17 @@
 
 <div class="compare-view">
   <section class="card">
-    <h3>1. Pick quantities to compare</h3>
+    <div class="summary-row">
+      <h3>1. Pick quantities to compare</h3>
+      {#if availableUnits.length > 1}
+        <div class="bulk-actions">
+          <button class="link-button" onclick={selectAllUnits} disabled={selectedUnits.size === availableUnits.length}>
+            Select all
+          </button>
+          <button class="link-button" onclick={clearUnits} disabled={selectedUnits.size === 0}>Clear</button>
+        </div>
+      {/if}
+    </div>
     {#if availableUnits.length === 0}
       <p class="note">No loaded records have a parseable absolute timestamp to align on.</p>
     {:else}
