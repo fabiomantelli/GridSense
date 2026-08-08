@@ -1,4 +1,5 @@
 <script lang="ts">
+  import { onMount } from 'svelte';
   import type { Session } from '../lib/types';
   import MultiRecordChart from './MultiRecordChart.svelte';
   import { getTheme } from '../lib/themeStore.svelte';
@@ -120,6 +121,21 @@
     included = new Set();
   }
 
+  // A first-time visitor landed on two empty pickers and nothing else — no
+  // chart, no hint that picking something above would produce one. Since
+  // sessions.length >= 2 is the only way to reach this view at all (see
+  // App.svelte's mode-toggle), there's almost always a genuinely useful
+  // default: everything eligible, on the first available quantity. Runs once
+  // per mount (App.svelte's {#if viewMode === 'compare'} destroys and
+  // recreates this component on every tab switch, so "once per mount" already
+  // means "once per visit," not just the very first time ever) — an operator
+  // who deliberately clears the pickers afterward keeps that choice for the
+  // rest of this visit.
+  onMount(() => {
+    selectAllIncluded();
+    if (availableUnits.length > 0) toggleUnit(availableUnits[0]);
+  });
+
   function setChannel(unit: string, stem: string, e: Event) {
     const value = Number((e.currentTarget as HTMLSelectElement).value);
     channelChoice = { ...channelChoice, [unit]: { ...(channelChoice[unit] ?? {}), [stem]: value } };
@@ -235,6 +251,10 @@
       {/if}
     </div>
   </details>
+
+  {#if selectedUnitsOrdered.length === 0}
+    <p class="note">Pick at least one quantity above to see a comparison chart.</p>
+  {/if}
 
   {#each selectedUnitsOrdered as unit (unit)}
     {@const eligible = eligibleForUnit(unit)}
