@@ -25,10 +25,19 @@
   const fullXRange: [number, number] = [timestampsMs[0] ?? 0, timestampsMs[timestampsMs.length - 1] ?? 1];
 
   // Same event markers every lane draws — computed once and handed down, not
-  // recomputed per lane.
-  const onsetMarkersMs = $derived(facts.events.map((e) => e.onset_time_us / 1000));
-  const tripMarkersMs = $derived(
-    facts.events.filter((e) => e.time_to_trip_us != null).map((e) => (e.onset_time_us + (e.time_to_trip_us as number)) / 1000),
+  // recomputed per lane. `classified` (kind !== 'Unclassified') is what lets
+  // ChannelLane give a real fault full visual weight and dim everything else —
+  // real files can carry 100+ events, almost all unclassified.
+  const onsetMarkers = $derived(
+    facts.events.map((e) => ({ ms: e.onset_time_us / 1000, classified: e.kind !== 'Unclassified' })),
+  );
+  const tripMarkers = $derived(
+    facts.events
+      .filter((e) => e.time_to_trip_us != null)
+      .map((e) => ({
+        ms: (e.onset_time_us + (e.time_to_trip_us as number)) / 1000,
+        classified: e.kind !== 'Unclassified',
+      })),
   );
 
   // Shared Y-range per unit-group, computed once from every channel *in the
@@ -229,8 +238,8 @@
                   {timestampsMs}
                   yRange={groupRanges[gi]}
                   showXAxis={idx === lastVisible}
-                  {onsetMarkersMs}
-                  {tripMarkersMs}
+                  {onsetMarkers}
+                  {tripMarkers}
                   {units}
                   expanded={isExpanded}
                 />

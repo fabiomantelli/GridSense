@@ -73,17 +73,6 @@
     return `${hh}:${mm}:${ss}.${ms}`;
   }
 
-  // The legend's hover value is a single reading, not a repeated tick label, so it
-  // can afford the date too — and needs to, since uPlot's own default here dropped
-  // seconds entirely (e.g. "2026-04-16 3:02am"), useless for locating a sub-cycle
-  // disturbance.
-  function formatAbsoluteDateTime(sec: number): string {
-    const d = new Date(sec * 1000);
-    const y = d.getUTCFullYear();
-    const mo = String(d.getUTCMonth() + 1).padStart(2, '0');
-    const day = String(d.getUTCDate()).padStart(2, '0');
-    return `${y}-${mo}-${day} ${formatAbsoluteTick(sec)}`;
-  }
 
   // Session components are keyed by selection (see CompareView's {#key}) and never
   // rebound to a different `records` array; $derived here is only to satisfy
@@ -109,7 +98,6 @@
   function drawMarkers(u: uPlot) {
     const ctx = u.ctx;
     ctx.save();
-    ctx.lineWidth = 1.5;
     ctx.setLineDash([]);
     records.forEach((r, i) => {
       // Series index i+1: index 0 in u.series is the x-series. Respects the
@@ -122,6 +110,14 @@
         const sec = (start + e.onset_time_us) / 1_000_000;
         const x = u.valToPos(sec, 'x', true);
         if (x < u.bbox.left || x > u.bbox.left + u.bbox.width) continue;
+        // Same primary/secondary hierarchy as ChannelLane's single-record
+        // markers: a classified fault (identified kind) stays fully bold, an
+        // "Unclassified event" dims — a noisy real file can carry 100+ of
+        // these and drawing every one at full strength buries the one
+        // classified fault among them.
+        const classified = e.kind !== 'Unclassified';
+        ctx.lineWidth = classified ? 1.5 : 1;
+        ctx.globalAlpha = classified ? 1 : 0.35;
         ctx.beginPath();
         ctx.moveTo(x, u.bbox.top);
         ctx.lineTo(x, u.bbox.top + u.bbox.height);
@@ -150,7 +146,7 @@
       font: '12px system-ui, -apple-system, sans-serif',
     };
     const series: uPlot.Series[] = [
-      { value: (_u, raw) => (raw == null ? '--' : formatAbsoluteDateTime(raw)) },
+      {},
       ...records.map((r, i) => ({
         label: `${r.stem} · ${r.metadata.analog_channels[r.channelIndex].id}`,
         stroke: theme.series[i % theme.series.length],
@@ -180,7 +176,13 @@
         { ...axisCommon, label: units, size: 56 },
       ],
       series,
-      legend: { show: true },
+      // live: false — keeps the legend for identity (color + record name) and
+      // its click-to-hide-series interaction, but drops the per-series value
+      // cell that used to update on every cursor move. Confirmed in uPlot's
+      // own source (initLegendRow): with live:false, legendCols is never
+      // populated, so no value <td> is created for any row at all — this
+      // isn't hiding the cell with CSS, uPlot just doesn't build it.
+      legend: { show: true, live: false },
       cursor: {
         // Distinct key from WaveformChart's 'voltcase-waveform' — that key is a
         // global string in uPlot, so reusing it would cross-sync zoom/cursor with any

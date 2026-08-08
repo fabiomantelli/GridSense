@@ -19,8 +19,8 @@
     timestampsMs,
     yRange,
     showXAxis,
-    onsetMarkersMs,
-    tripMarkersMs,
+    onsetMarkers,
+    tripMarkers,
     units,
     expanded = false,
   }: {
@@ -31,8 +31,12 @@
     timestampsMs: Float64Array;
     yRange: [number, number];
     showXAxis: boolean;
-    onsetMarkersMs: number[];
-    tripMarkersMs: number[];
+    // classified: whether the event has an identified fault kind (e.g.
+    // "Three-phase fault") vs. a generic "Unclassified event" — real noisy
+    // files can carry 100+ events, nearly all unclassified, so the marker
+    // itself needs a visual hierarchy or it becomes a wall of red lines.
+    onsetMarkers: { ms: number; classified: boolean }[];
+    tripMarkers: { ms: number; classified: boolean }[];
     units: string;
     // Whether this lane's card is currently the fullscreen-expanded one. In
     // the normal in-page view every lane stays a fixed, compact height
@@ -90,15 +94,21 @@
   function drawMarkers(u: uPlot) {
     const ctx = u.ctx;
     ctx.save();
-    // Thinner than the data line (2px) on purpose: these are reference
-    // annotations (an onset/trip moment), not the signal itself — the
-    // thickness gap gives the eye a hierarchy between "this is data" and
-    // "this marks a moment," matching the dataviz skill's hairline spec for
-    // structural/reference lines vs. its 2px spec for actual data marks.
-    ctx.lineWidth = 1;
-    const draw = (ms: number, markerColor: string, dashed: boolean) => {
+    const draw = (ms: number, markerColor: string, dashed: boolean, classified: boolean) => {
       const x = u.valToPos(ms, 'x', true);
       if (x < u.bbox.left || x > u.bbox.left + u.bbox.width) return;
+      // Thinner than the data line (2px) on purpose: these are reference
+      // annotations (an onset/trip moment), not the signal itself — the
+      // thickness gap gives the eye a hierarchy between "this is data" and
+      // "this marks a moment," matching the dataviz skill's hairline spec for
+      // structural/reference lines vs. its 2px spec for actual data marks.
+      // A classified fault (identified kind, e.g. "Three-phase fault") keeps
+      // full weight/opacity — it's the moment that matters. An unclassified
+      // event dims down: a real 100+-event file is mostly these, and drawing
+      // every one at full strength turns the chart into a wall of red lines
+      // that buries the one classified fault among them.
+      ctx.lineWidth = classified ? 1 : 0.75;
+      ctx.globalAlpha = classified ? 1 : 0.35;
       ctx.strokeStyle = markerColor;
       ctx.setLineDash(dashed ? [5, 4] : []);
       ctx.beginPath();
@@ -106,8 +116,8 @@
       ctx.lineTo(x, u.bbox.top + u.bbox.height);
       ctx.stroke();
     };
-    for (const ms of onsetMarkersMs) draw(ms, theme.markerCritical, false);
-    for (const ms of tripMarkersMs) draw(ms, theme.markerNeutral, true);
+    for (const m of onsetMarkers) draw(m.ms, theme.markerCritical, false, m.classified);
+    for (const m of tripMarkers) draw(m.ms, theme.markerNeutral, true, m.classified);
     ctx.restore();
   }
 
