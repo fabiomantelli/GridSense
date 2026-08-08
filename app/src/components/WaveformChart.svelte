@@ -41,6 +41,9 @@
 
   let containers = $state<HTMLDivElement[]>([]);
   let plots: uPlot[] = [];
+  let resizeObservers: ResizeObserver[] = [];
+  // At most one group expanded to fullscreen at a time — index into `groups`.
+  let expandedGroupIndex = $state<number | null>(null);
 
   function drawMarkers(u: uPlot) {
     const ctx = u.ctx;
@@ -113,6 +116,29 @@
       };
       const plot = new uPlot(opts, data, el);
       el.ondblclick = () => resetZoom();
+
+      // uPlot sizes itself once at construction and never re-measures its
+      // container on its own — needed so the canvas actually grows/shrinks when a
+      // card's expand toggle (or a window resize) changes the container's real
+      // size. setSize's height governs only the plotting area, not the title
+      // (above) or legend (below) uPlot renders as extra DOM in the same
+      // container — subtracting both keeps the whole uPlot root inside the space
+      // it was actually given instead of overflowing it. That overflow mattering
+      // isn't just cosmetic: since it would grow the container's own *content*
+      // height too, every observation would ratchet the canvas taller than the
+      // last forever the moment the container ever went back to being
+      // content-sized instead of CSS-sized (see the collapsed .chart-container
+      // height rule below).
+      const ro = new ResizeObserver(() => {
+        const titleHeight = el.querySelector<HTMLElement>('.u-title')?.offsetHeight ?? 0;
+        const legendHeight = el.querySelector<HTMLElement>('.u-legend')?.offsetHeight ?? 0;
+        const width = el.clientWidth;
+        const height = el.clientHeight - titleHeight - legendHeight;
+        if (width > 0 && height > 0) plot.setSize({ width, height });
+      });
+      ro.observe(el);
+      resizeObservers.push(ro);
+
       return plot;
     });
   }
@@ -124,22 +150,70 @@
   }
 
   function destroyPlots() {
+    for (const ro of resizeObservers) ro.disconnect();
+    resizeObservers = [];
     for (const p of plots) p.destroy();
     plots = [];
   }
 
+  function toggleExpand(gi: number) {
+    expandedGroupIndex = expandedGroupIndex === gi ? null : gi;
+  }
+
+  // While a card is expanded it behaves like a lightbox: Esc closes it and the
+  // page behind it stops scrolling so the two scroll contexts don't fight.
+  $effect(() => {
+    if (expandedGroupIndex == null) return;
+    const previousOverflow = document.body.style.overflow;
+    document.body.style.overflow = 'hidden';
+    function onKeydown(e: KeyboardEvent) {
+      if (e.key === 'Escape') expandedGroupIndex = null;
+    }
+    window.addEventListener('keydown', onKeydown);
+    return () => {
+      document.body.style.overflow = previousOverflow;
+      window.removeEventListener('keydown', onKeydown);
+    };
+  });
+
   onMount(buildPlots);
   onDestroy(destroyPlots);
 </script>
+
+{#snippet expandIcon()}
+  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+    <path d="M8 3H5a2 2 0 00-2 2v3M16 3h3a2 2 0 012 2v3M21 16v3a2 2 0 01-2 2h-3M8 21H5a2 2 0 01-2-2v-3" />
+  </svg>
+{/snippet}
+{#snippet shrinkIcon()}
+  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+    <path d="M9 3v3a2 2 0 01-2 2H4M15 3v3a2 2 0 002 2h3M21 15h-3a2 2 0 00-2 2v3M3 15h3a2 2 0 012 2v3" />
+  </svg>
+{/snippet}
 
 {#if groups.length}
   <div class="toolbar">
     <button class="reset-zoom" onclick={resetZoom}>Reset zoom</button>
     <span class="hint">drag to zoom · double-click to reset</span>
   </div>
+  {#if expandedGroupIndex != null}
+    <button class="backdrop" onclick={() => (expandedGroupIndex = null)} aria-label="Exit fullscreen"></button>
+  {/if}
   <div class="charts">
     {#each groups as [units], gi (units)}
-      <div class="chart-card">
+      <div class="chart-card" class:expanded={expandedGroupIndex === gi}>
+        <div class="card-toolbar">
+          {#if expandedGroupIndex === gi}
+            <span class="hint">Esc or click outside to exit</span>
+          {/if}
+          <button
+            class="expand-toggle"
+            onclick={() => toggleExpand(gi)}
+            aria-label={expandedGroupIndex === gi ? 'Exit fullscreen' : `Expand ${units} chart`}
+          >
+            {@render (expandedGroupIndex === gi ? shrinkIcon : expandIcon)()}
+          </button>
+        </div>
         <div class="chart-container" bind:this={containers[gi]}></div>
       </div>
     {/each}
@@ -184,8 +258,61 @@
     padding: 0.75rem;
     box-shadow: var(--shadow-card);
   }
+  .chart-card.expanded {
+    position: fixed;
+    inset: 2rem;
+    z-index: 100;
+    display: flex;
+    flex-direction: column;
+    overflow: auto;
+  }
+  .chart-card.expanded .chart-container {
+    flex: 1;
+    min-height: 0;
+  }
+  .backdrop {
+    position: fixed;
+    inset: 0;
+    z-index: 90;
+    background: rgba(0, 0, 0, 0.6);
+    border: none;
+    padding: 0;
+    cursor: default;
+  }
+  .card-toolbar {
+    display: flex;
+    align-items: center;
+    justify-content: flex-end;
+    gap: 0.6rem;
+    margin-bottom: 0.4rem;
+  }
+  .expand-toggle {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    background: var(--surface);
+    border: 1px solid var(--border-strong);
+    border-radius: var(--radius-sm);
+    padding: 0.3rem;
+    color: var(--text-secondary);
+    cursor: pointer;
+  }
+  .expand-toggle:hover {
+    border-color: var(--series-1);
+    color: var(--series-1);
+  }
+  .expand-toggle svg {
+    width: 16px;
+    height: 16px;
+    display: block;
+  }
   .chart-container {
     width: 100%;
+    /* Authoritative, not content-driven — see the ResizeObserver comment in the
+       script block for why a content-sized collapsed container would leave the
+       chart stuck at fullscreen size after exiting. flex:1 above still wins over
+       this while expanded, since the `1` shorthand sets flex-basis:0%. */
+    height: 220px;
   }
   .note {
     color: var(--text-muted);
