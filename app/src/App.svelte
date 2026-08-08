@@ -9,6 +9,7 @@
   import { pairComtradeFiles, type ComtradePair, type PendingHalf } from './lib/filePairing';
   import { loadComtrade, disposeRecord } from './lib/wasm';
   import type { Session } from './lib/types';
+  import { getTheme, toggleTheme } from './lib/themeStore.svelte';
 
   let sessions = $state<Session[]>([]);
   let activeStem = $state<string | null>(null);
@@ -76,6 +77,18 @@
   });
 </script>
 
+{#snippet sunIcon()}
+  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+    <circle cx="12" cy="12" r="4" />
+    <path d="M12 2v2M12 20v2M4.93 4.93l1.41 1.41M17.66 17.66l1.41 1.41M2 12h2M20 12h2M4.93 19.07l1.41-1.41M17.66 6.34l1.41-1.41" />
+  </svg>
+{/snippet}
+{#snippet moonIcon()}
+  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+    <path d="M21 12.79A9 9 0 1111.21 3 7 7 0 0021 12.79z" />
+  </svg>
+{/snippet}
+
 <header class="app-header">
   <div class="brand">
     <svg class="mark" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
@@ -83,7 +96,17 @@
     </svg>
     <span class="wordmark">Voltcase</span>
   </div>
-  <span class="trust-badge">100% local · nothing is uploaded</span>
+  <div class="header-actions">
+    <span class="trust-badge">100% local · nothing is uploaded</span>
+    <button
+      class="theme-toggle"
+      onclick={toggleTheme}
+      aria-label={getTheme() === 'dark' ? 'Switch to light mode' : 'Switch to dark mode'}
+      title={getTheme() === 'dark' ? 'Switch to light mode' : 'Switch to dark mode'}
+    >
+      {@render (getTheme() === 'dark' ? sunIcon : moonIcon)()}
+    </button>
+  </div>
 </header>
 
 <main>
@@ -135,10 +158,14 @@
           </section>
           <section>
             <h2>Waveforms</h2>
-            <WaveformChart metadata={s.metadata} handle={s.handle} facts={s.facts} />
+            {#key getTheme()}
+              <WaveformChart metadata={s.metadata} handle={s.handle} facts={s.facts} />
+            {/key}
           </section>
           <section>
-            <DigitalTimeline metadata={s.metadata} handle={s.handle} />
+            {#key getTheme()}
+              <DigitalTimeline metadata={s.metadata} handle={s.handle} />
+            {/key}
           </section>
           <section>
             <ChannelTable metadata={s.metadata} handle={s.handle} />
@@ -173,6 +200,11 @@
     font-size: 0.95rem;
     letter-spacing: -0.01em;
   }
+  .header-actions {
+    display: flex;
+    align-items: center;
+    gap: 0.6rem;
+  }
   .trust-badge {
     font-size: 0.75rem;
     color: var(--text-muted);
@@ -181,11 +213,39 @@
     border-radius: 999px;
     padding: 0.25rem 0.7rem;
   }
+  .theme-toggle {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    background: var(--page);
+    border: 1px solid var(--border);
+    border-radius: var(--radius-sm);
+    padding: 0.35rem;
+    color: var(--text-secondary);
+    cursor: pointer;
+  }
+  .theme-toggle:hover {
+    border-color: var(--series-1);
+    color: var(--series-1);
+  }
+  .theme-toggle svg {
+    width: 16px;
+    height: 16px;
+    display: block;
+  }
 
   main {
-    max-width: 980px;
+    /* 980px read fine as a text column but starves the actual point of this
+       app: dense multi-channel waveform lanes, which get real, measurable
+       benefit (more samples per pixel before zooming, fewer wrapped rows in
+       the channel picker) from every extra pixel of width. A hard cap this
+       narrow left roughly half of a normal 1920px monitor empty on both
+       sides. 1600px comfortably fills a standard monitor while still capping
+       sensibly on an ultrawide — max-width is a ceiling, not a fixed size, so
+       narrower viewports still just get 100% width minus the padding below. */
+    max-width: 1600px;
     margin: 0 auto;
-    padding: 1.75rem 1.25rem 4rem;
+    padding: 1.75rem 2rem 4rem;
   }
   section {
     margin-top: 1.75rem;

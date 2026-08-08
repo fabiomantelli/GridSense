@@ -55,12 +55,21 @@
   // for itself — it just prints a bare, ambiguous ":14.080" on every tick after the
   // first and buries the actual hour/minute in a small one-time corner label. Every
   // tick gets a full, self-contained HH:MM:ss.mmm instead.
+  // UTC getters, not local (getHours/getMonth/etc.) — voltcase-core's
+  // parse_comtrade_timestamp deliberately applies no UTC offset (the COMTRADE
+  // format carries none to apply: timestamp_start_raw is just the relay's own
+  // clock reading, with no timezone attached), so start_epoch_us's digits
+  // *are* the raw file's digits, reinterpreted as literal UTC. Reading them
+  // back with local getters silently re-shifted them by the browser's own
+  // timezone offset — the displayed time no longer matched what's actually
+  // printed in the .cfg file. UTC getters round-trip the original digits
+  // exactly, regardless of what timezone the viewer's browser happens to be in.
   function formatAbsoluteTick(sec: number): string {
     const d = new Date(sec * 1000);
-    const hh = String(d.getHours()).padStart(2, '0');
-    const mm = String(d.getMinutes()).padStart(2, '0');
-    const ss = String(d.getSeconds()).padStart(2, '0');
-    const ms = String(d.getMilliseconds()).padStart(3, '0');
+    const hh = String(d.getUTCHours()).padStart(2, '0');
+    const mm = String(d.getUTCMinutes()).padStart(2, '0');
+    const ss = String(d.getUTCSeconds()).padStart(2, '0');
+    const ms = String(d.getUTCMilliseconds()).padStart(3, '0');
     return `${hh}:${mm}:${ss}.${ms}`;
   }
 
@@ -70,9 +79,9 @@
   // disturbance.
   function formatAbsoluteDateTime(sec: number): string {
     const d = new Date(sec * 1000);
-    const y = d.getFullYear();
-    const mo = String(d.getMonth() + 1).padStart(2, '0');
-    const day = String(d.getDate()).padStart(2, '0');
+    const y = d.getUTCFullYear();
+    const mo = String(d.getUTCMonth() + 1).padStart(2, '0');
+    const day = String(d.getUTCDate()).padStart(2, '0');
     return `${y}-${mo}-${day} ${formatAbsoluteTick(sec)}`;
   }
 
@@ -248,9 +257,22 @@
     // container's height (reading the same not-yet-laid-out legend) — harmless: it
     // briefly undersizes the canvas by the same margin, and self-corrects the
     // moment the rAF's height change triggers this observer again.
+    //
+    // Also re-sets container.style.height every time, not just once at mount:
+    // the legend's real height can change after mount for reasons that have
+    // nothing to do with a resize this observer would otherwise catch (e.g. its
+    // row wrapping differently at a width the container itself didn't change
+    // to, or web fonts finishing their swap after the rAF above already ran).
+    // Leaving the mount-time snapshot as the only source of truth let the
+    // container's CSS height drift stale — the legend would then overflow past
+    // the container's own (too-short) box, visually landing on top of the
+    // .caption text sitting right below it in the DOM. Setting the *same*
+    // computed height here is a no-op (ResizeObserver doesn't refire on an
+    // unchanged size), so this can't loop.
     resizeObserver = new ResizeObserver(() => {
       if (!container || !plot) return;
       const legendHeight = container.querySelector<HTMLElement>('.u-legend')?.offsetHeight ?? 0;
+      if (!isExpanded) container.style.height = `${CANVAS_HEIGHT + legendHeight}px`;
       const width = container.clientWidth;
       const height = container.clientHeight - legendHeight;
       if (width > 0 && height > 0) plot.setSize({ width, height });
@@ -318,8 +340,8 @@
   </div>
   <div class="chart-container" bind:this={container}></div>
   <p class="caption">
-    Times shown in your browser's local timezone — source .cfg files carry no UTC offset, so this is a direct read of
-    each record's timestamp, not a corrected one.
+    Times shown exactly as recorded in each source .cfg file — the format carries no timezone, so this is a direct
+    read of each record's own clock, not corrected or shifted to your browser's timezone.
   </p>
 </div>
 

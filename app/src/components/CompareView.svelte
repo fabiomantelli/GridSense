@@ -1,6 +1,7 @@
 <script lang="ts">
   import type { Session } from '../lib/types';
   import MultiRecordChart from './MultiRecordChart.svelte';
+  import { getTheme } from '../lib/themeStore.svelte';
 
   let { sessions }: { sessions: Session[] } = $props();
 
@@ -185,6 +186,13 @@
             <button
               class="link-button"
               onclick={(e) => {
+                // preventDefault, not just stopPropagation: a click inside
+                // <summary> runs the browser's native open/close toggle as a
+                // default action gated on event.defaultPrevented, not on
+                // whether propagation was stopped — stopPropagation alone
+                // still let this button's click silently collapse the card
+                // out from under the click.
+                e.preventDefault();
                 e.stopPropagation();
                 selectAllIncluded();
               }}
@@ -195,6 +203,7 @@
             <button
               class="link-button"
               onclick={(e) => {
+                e.preventDefault();
                 e.stopPropagation();
                 clearIncluded();
               }}
@@ -250,7 +259,7 @@
             {/each}
           </div>
           {#if unitRecords.length}
-            {#key unitRecords.map((r) => `${r.stem}:${r.channelIndex}`).join(',')}
+            {#key unitRecords.map((r) => `${r.stem}:${r.channelIndex}`).join(',') + ':' + getTheme()}
               <MultiRecordChart
                 records={unitRecords}
                 units={unit}

@@ -66,7 +66,7 @@
   </section>
 
   <section>
-    <details class="events-card" open>
+    <details class="events-card">
       <summary>Events{#if facts.events.length > 0}&nbsp;— {facts.events.length} detected{/if}</summary>
       <div class="content">
         {#if facts.events.length === 0}

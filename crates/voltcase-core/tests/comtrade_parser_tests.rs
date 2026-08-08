@@ -190,6 +190,27 @@ fn parses_multi_channel_fault_event_fixture() {
 }
 
 #[test]
+fn parses_many_channels_fixture_used_for_compact_lane_ui_testing() {
+    // 24 analog channels (4 simulated sources x 3-phase V + 3-phase A), 600 samples
+    // at 3 kHz — stress-tests the compact ChannelLane UI at a channel count real
+    // multi-source relay files actually have, unlike every other fixture here
+    // (max 7 channels). Source S2 carries a three-phase sag/swell at samples
+    // [300, 450) for the UI's event-marker and shared-Y-range manual verification.
+    let (cfg_text, dat_bytes) = fixture("many_channels_v1999");
+    let record = comtrade::load(&cfg_text, &dat_bytes).expect("parse many_channels fixture");
+
+    assert_eq!(record.cfg.analog_channels.len(), 24);
+    assert_eq!(record.cfg.digital_channels.len(), 0);
+    assert_eq!(record.sample_numbers.len(), 600);
+    assert_eq!(record.analog_samples[0].len(), 600);
+
+    assert_eq!(record.cfg.analog_channels[0].id, "S1_VA");
+    assert_eq!(record.cfg.analog_channels[0].units, "V");
+    assert_eq!(record.cfg.analog_channels[12].id, "S1_IA");
+    assert_eq!(record.cfg.analog_channels[12].units, "A");
+}
+
+#[test]
 fn malformed_dat_line_reports_the_offending_line_number() {
     let (cfg_text, _) = fixture("synthetic_v1999");
     // Missing the digital field on line 2.

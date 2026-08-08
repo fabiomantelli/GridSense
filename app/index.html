@@ -7,13 +7,19 @@
   </head>
   <body>
     <!-- Runs before the app mounts so both CSS tokens and canvas-drawn chart
-         chrome (lib/theme.ts) agree on the theme from first paint. `?theme=` is
-         a manual override for testing; a real in-app toggle would write here too. -->
+         chrome (lib/theme.ts) agree on the theme from first paint — otherwise
+         the page would flash the OS-preference theme before Svelte mounts and
+         lib/themeStore's saved preference takes over. `?theme=` (manual
+         override for testing) wins over the saved preference; both win over the
+         `[data-theme]` attribute being absent, which falls through to the OS
+         preference via app.css's media query. -->
     <script>
       (function () {
         var forced = new URLSearchParams(location.search).get('theme');
-        if (forced === 'light' || forced === 'dark') {
-          document.documentElement.setAttribute('data-theme', forced);
+        var saved = localStorage.getItem('voltcase-theme');
+        var theme = forced === 'light' || forced === 'dark' ? forced : saved === 'light' || saved === 'dark' ? saved : null;
+        if (theme) {
+          document.documentElement.setAttribute('data-theme', theme);
         }
       })();
     </script>
