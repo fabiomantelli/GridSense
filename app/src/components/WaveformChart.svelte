@@ -231,6 +231,7 @@
                   showXAxis={idx === lastVisible}
                   {onsetMarkersMs}
                   {tripMarkersMs}
+                  {units}
                   expanded={isExpanded}
                 />
               {/each}

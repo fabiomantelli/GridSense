@@ -21,6 +21,7 @@
     showXAxis,
     onsetMarkersMs,
     tripMarkersMs,
+    units,
     expanded = false,
   }: {
     label: string;
@@ -32,6 +33,7 @@
     showXAxis: boolean;
     onsetMarkersMs: number[];
     tripMarkersMs: number[];
+    units: string;
     // Whether this lane's card is currently the fullscreen-expanded one. In
     // the normal in-page view every lane stays a fixed, compact height
     // regardless of channel count — that's the point of this view for
@@ -158,12 +160,36 @@
   }
 
   let container = $state<HTMLDivElement | undefined>(undefined);
+  let valueEl = $state<HTMLDivElement | undefined>(undefined);
   let plot: uPlot | undefined;
   let resizeObserver: ResizeObserver | undefined;
+  // Set once in buildPlot, read on every cursor move in updateHoverValue —
+  // shared at this scope (not local to buildPlot) so both can see it.
+  let ys: Float32Array | undefined;
+
+  // The vertical sync cursor (uPlot's own, drawn as a plain CSS-positioned
+  // line — already shared across every lane via cursor.sync) says *where*;
+  // this says *what*. Deliberately a plain DOM node updated imperatively here,
+  // not canvas-drawn like the badge/markers above: unlike those, this has to
+  // update on every mousemove, and hooks.draw only re-fires on structural
+  // changes (resize/zoom/data) — hooks.setCursor is the one that actually
+  // fires on cursor movement, cheaply, without repainting the whole canvas.
+  function updateHoverValue(u: uPlot) {
+    if (!valueEl || !ys) return;
+    const idx = u.cursor.idx;
+    const v = idx == null ? undefined : ys[idx];
+    if (v == null || Number.isNaN(v)) {
+      valueEl.classList.remove('visible');
+      return;
+    }
+    valueEl.textContent = `${v.toFixed(3)} ${units}`;
+    valueEl.classList.add('visible');
+  }
 
   function buildPlot() {
     if (!container) return;
-    const data = [timestampsMs, handle.analog_channel_f32(channelIndex)] as unknown as uPlot.AlignedData;
+    ys = handle.analog_channel_f32(channelIndex);
+    const data = [timestampsMs, ys] as unknown as uPlot.AlignedData;
     const axisCommon = {
       stroke: theme.text,
       grid: { stroke: theme.grid, width: 1 },
@@ -205,6 +231,7 @@
       },
       hooks: {
         draw: [drawMarkers, drawBadge],
+        setCursor: [updateHoverValue],
         setSelect: [
           (u) => {
             if (u.select.width > 4) {
@@ -256,14 +283,46 @@
   style:height={expanded ? undefined : `${showXAxis ? LANE_HEIGHT + X_AXIS_HEIGHT : LANE_HEIGHT}px`}
   style:min-height={expanded ? `${showXAxis ? LANE_HEIGHT + X_AXIS_HEIGHT : LANE_HEIGHT}px` : undefined}
   title={label}
-  bind:this={container}
-></div>
+>
+  <div class="plot-mount" bind:this={container}></div>
+  <div class="hover-value" bind:this={valueEl}></div>
+</div>
 
 <style>
   .lane {
+    position: relative;
     width: 100%;
     background: var(--surface);
     transition: background-color 0.1s ease;
+  }
+  .plot-mount {
+    width: 100%;
+    height: 100%;
+  }
+  /* Answers "what's the exact value here" without adding permanent chrome:
+     mirrors the identity badge's pill style in the opposite corner, but only
+     ever visible while the synced cursor is actually over this group — the
+     rest of the time it takes up no visual space at all. Driven imperatively
+     from updateHoverValue (see script), not Svelte state, since it has to
+     track every mousemove without triggering a component re-render. */
+  .hover-value {
+    position: absolute;
+    top: 6px;
+    right: 6px;
+    padding: 2px 6px;
+    border-radius: 4px;
+    background: color-mix(in srgb, var(--surface) 85%, transparent);
+    color: var(--text-primary);
+    font-size: 11px;
+    font-variant-numeric: tabular-nums;
+    pointer-events: none;
+    opacity: 0;
+  }
+  /* :global — the "visible" class is toggled imperatively (see
+     updateHoverValue), not via a template class: directive, so Svelte's
+     static template analysis can't otherwise see this selector is reachable. */
+  .hover-value:global(.visible) {
+    opacity: 1;
   }
   /* Only meaningful while expanded (see the `expanded` prop doc comment) — the
      parent .lanes flex container gives every flexible lane an equal share of
