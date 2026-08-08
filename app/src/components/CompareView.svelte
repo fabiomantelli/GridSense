@@ -150,36 +150,56 @@
     {/if}
   </section>
 
-  <section class="card">
-    <div class="section-header">
-      <h3>2. Pick records to include</h3>
-      {#if eligibleSessions.length > 1}
-        <div class="bulk-actions">
-          <button class="link-button" onclick={selectAllIncluded} disabled={included.size === eligibleSessions.length}>
-            Select all
-          </button>
-          <button class="link-button" onclick={clearIncluded} disabled={included.size === 0}>Clear</button>
-        </div>
+  <details class="chart-card" open>
+    <summary>
+      <span class="summary-row">
+        <span>2. Pick records to include{#if included.size}&nbsp;— {included.size} selected{/if}</span>
+        {#if eligibleSessions.length > 1}
+          <span class="bulk-actions">
+            <button
+              class="link-button"
+              onclick={(e) => {
+                e.stopPropagation();
+                selectAllIncluded();
+              }}
+              disabled={included.size === eligibleSessions.length}
+            >
+              Select all
+            </button>
+            <button
+              class="link-button"
+              onclick={(e) => {
+                e.stopPropagation();
+                clearIncluded();
+              }}
+              disabled={included.size === 0}
+            >
+              Clear
+            </button>
+          </span>
+        {/if}
+      </span>
+    </summary>
+    <div class="content">
+      <div class="session-list">
+        {#each sessions as s (s.stem)}
+          {@const reason = disabledReasonFor(s)}
+          <div class="session-row" class:disabled={reason != null}>
+            <label>
+              <input type="checkbox" disabled={reason != null} checked={included.has(s.stem)} onchange={() => toggleIncluded(s)} />
+              {s.stem}
+            </label>
+            {#if reason}
+              <span class="reason">{reason}</span>
+            {/if}
+          </div>
+        {/each}
+      </div>
+      {#if included.size > 4}
+        <p class="note">Comparing more than about 4 records at once can be hard to read even with the legend.</p>
       {/if}
     </div>
-    <div class="session-list">
-      {#each sessions as s (s.stem)}
-        {@const reason = disabledReasonFor(s)}
-        <div class="session-row" class:disabled={reason != null}>
-          <label>
-            <input type="checkbox" disabled={reason != null} checked={included.has(s.stem)} onchange={() => toggleIncluded(s)} />
-            {s.stem}
-          </label>
-          {#if reason}
-            <span class="reason">{reason}</span>
-          {/if}
-        </div>
-      {/each}
-    </div>
-    {#if included.size > 4}
-      <p class="note">Comparing more than about 4 records at once can be hard to read even with the legend.</p>
-    {/if}
-  </section>
+  </details>
 
   {#each selectedUnitsOrdered as unit (unit)}
     {@const eligible = eligibleForUnit(unit)}
@@ -238,19 +258,16 @@
     font-size: 0.85rem;
     color: var(--text-secondary);
   }
-  .section-header {
+  .summary-row {
     display: flex;
     align-items: baseline;
     justify-content: space-between;
     gap: 1rem;
-  }
-  .section-header h3 {
-    margin: 0 0 0.75rem;
+    width: 100%;
   }
   .bulk-actions {
     display: flex;
     gap: 0.9rem;
-    margin-bottom: 0.75rem;
   }
   .link-button {
     background: none;
