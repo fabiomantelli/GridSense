@@ -103,6 +103,10 @@
     ctx.lineWidth = 1.5;
     ctx.setLineDash([]);
     records.forEach((r, i) => {
+      // Series index i+1: index 0 in u.series is the x-series. Respects the
+      // legend's own click-to-hide toggle — a record hidden from the plot
+      // shouldn't still leave its onset marker behind.
+      if (u.series[i + 1].show === false) return;
       const start = r.metadata.start_epoch_us as number;
       ctx.strokeStyle = theme.series[i % theme.series.length];
       for (const e of r.facts.events) {
