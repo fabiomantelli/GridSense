@@ -39,6 +39,10 @@
     facts.events.filter((e) => e.time_to_trip_us != null).map((e) => (e.onset_time_us + (e.time_to_trip_us as number)) / 1000),
   );
 
+  // This component's original fixed canvas height, from before the expand
+  // feature existed — still the target for the collapsed (non-expanded) state.
+  const CANVAS_HEIGHT = 220;
+
   let containers = $state<HTMLDivElement[]>([]);
   let plots: uPlot[] = [];
   let resizeObservers: ResizeObserver[] = [];
@@ -85,7 +89,7 @@
       };
       const opts: uPlot.Options = {
         width: el.clientWidth || 800,
-        height: 220,
+        height: CANVAS_HEIGHT,
         title: units,
         scales: { x: { time: false } },
         axes: [
@@ -117,6 +121,29 @@
       const plot = new uPlot(opts, data, el);
       el.ondblclick = () => resetZoom();
 
+      // The collapsed container needs canvas height (220) + however tall the
+      // title and legend actually render, not just 220 — those are real DOM
+      // taking up real space in the same container, so sizing it to exactly the
+      // old canvas-only height leaves them no room, and the ResizeObserver below
+      // (which treats the container's height as the budget for title+canvas+legend
+      // together) then has no choice but to shrink the canvas to fit them in.
+      //
+      // Deferred a frame on purpose: uPlot's own stylesheet (imported above) lays
+      // the legend out as one horizontal row via CSS, but reading its offsetHeight
+      // in the same synchronous tick as `new uPlot(...)` — before the browser has
+      // applied that stylesheet to the just-inserted table — catches it in
+      // plain-HTML-table form instead, one row per series stacked vertically
+      // (confirmed by logging the legend's outerHTML: a >300px-tall table for what
+      // renders as a ~29px single row one frame later). rAF waits for that layout
+      // pass to actually happen first.
+      requestAnimationFrame(() => {
+        if (!el.isConnected) return;
+        const chromeHeight =
+          (el.querySelector<HTMLElement>('.u-title')?.offsetHeight ?? 0) +
+          (el.querySelector<HTMLElement>('.u-legend')?.offsetHeight ?? 0);
+        el.style.height = `${CANVAS_HEIGHT + chromeHeight}px`;
+      });
+
       // uPlot sizes itself once at construction and never re-measures its
       // container on its own — needed so the canvas actually grows/shrinks when a
       // card's expand toggle (or a window resize) changes the container's real
@@ -128,7 +155,11 @@
       // height too, every observation would ratchet the canvas taller than the
       // last forever the moment the container ever went back to being
       // content-sized instead of CSS-sized (see the collapsed .chart-container
-      // height rule below).
+      // height rule below). This can legitimately fire once before the rAF above
+      // has corrected the container's height (reading the same not-yet-laid-out
+      // legend, same as that callback would without the deferral) — harmless: it
+      // briefly undersizes the canvas by the same margin, and self-corrects the
+      // moment the rAF's height change triggers this observer again.
       const ro = new ResizeObserver(() => {
         const titleHeight = el.querySelector<HTMLElement>('.u-title')?.offsetHeight ?? 0;
         const legendHeight = el.querySelector<HTMLElement>('.u-legend')?.offsetHeight ?? 0;
@@ -308,10 +339,13 @@
   }
   .chart-container {
     width: 100%;
-    /* Authoritative, not content-driven — see the ResizeObserver comment in the
-       script block for why a content-sized collapsed container would leave the
-       chart stuck at fullscreen size after exiting. flex:1 above still wins over
-       this while expanded, since the `1` shorthand sets flex-basis:0%. */
+    /* Fallback only, for the brief window before the script sets a precise inline
+       height (canvas + actual title/legend height) once the plot exists — see
+       buildPlots. Needs *some* authoritative (non-content-driven) height even as a
+       fallback: a content-sized collapsed container would leave the chart stuck at
+       fullscreen size after exiting (see the ResizeObserver comment in the script
+       block). flex:1 above still wins over this while expanded, since the `1`
+       shorthand sets flex-basis:0%. */
     height: 220px;
   }
   .note {
