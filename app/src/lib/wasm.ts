@@ -1,4 +1,4 @@
-import init, { parse_comtrade, ComtradeHandle } from '../wasm-pkg/gridsense_wasm.js';
+import init, { parse_comtrade, ComtradeHandle } from '../wasm-pkg/voltcase_wasm.js';
 import type { AnalysisFacts, CfgFile } from './types';
 
 let ready: Promise<unknown> | null = null;

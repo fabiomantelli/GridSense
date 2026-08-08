@@ -3,7 +3,7 @@
   import 'uplot/dist/uPlot.min.css';
   import { onMount, onDestroy } from 'svelte';
   import type { AnalysisFacts, CfgFile } from '../lib/types';
-  import type { ComtradeHandle } from '../wasm-pkg/gridsense_wasm';
+  import type { ComtradeHandle } from '../wasm-pkg/voltcase_wasm';
   import { resolveChartTheme } from '../lib/theme';
 
   let { metadata, handle, facts }: { metadata: CfgFile; handle: ComtradeHandle; facts: AnalysisFacts } = $props();
@@ -101,7 +101,7 @@
         cursor: {
           // scales:['x',null] propagates zoom/pan (not just the crosshair) to every
           // synced plot, so dragging to zoom the voltage plot zooms current too.
-          sync: { key: 'gridsense-waveform', setSeries: true, scales: ['x', null] },
+          sync: { key: 'voltcase-waveform', setSeries: true, scales: ['x', null] },
           drag: { x: true, y: false },
         },
         hooks: {

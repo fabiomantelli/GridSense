@@ -1,11 +1,11 @@
 {
-  "name": "gridsense-app",
+  "name": "voltcase-app",
   "private": true,
   "version": "0.1.0",
   "type": "module",
   "scripts": {
     "dev": "vite",
-    "build:wasm": "wasm-pack build --target web --release ../crates/gridsense-wasm --out-dir ../../app/src/wasm-pkg",
+    "build:wasm": "wasm-pack build --target web --release ../crates/voltcase-wasm --out-dir ../../app/src/wasm-pkg",
     "build": "npm run build:wasm && vite build",
     "preview": "vite preview",
     "check": "svelte-check --tsconfig ./tsconfig.json",

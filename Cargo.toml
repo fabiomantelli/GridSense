@@ -1,6 +1,6 @@
 [workspace]
 resolver = "2"
-members = ["crates/gridsense-core", "crates/gridsense-wasm"]
+members = ["crates/voltcase-core", "crates/voltcase-wasm"]
 
 [workspace.package]
 edition = "2021"

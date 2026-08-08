@@ -1,4 +1,4 @@
-use gridsense_core::comtrade::timestamp::parse_comtrade_timestamp;
+use voltcase_core::comtrade::timestamp::parse_comtrade_timestamp;
 
 #[test]
 fn parses_known_reference_dates() {

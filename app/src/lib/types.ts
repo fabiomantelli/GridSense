@@ -1,8 +1,8 @@
-// Mirrors gridsense-core's comtrade::model types (serde field names are snake_case,
+// Mirrors voltcase-core's comtrade::model types (serde field names are snake_case,
 // unchanged by serde-wasm-bindgen). Keep in sync by hand until the surface grows
 // enough to justify generating this from the Rust types.
 
-import type { ComtradeHandle } from '../wasm-pkg/gridsense_wasm';
+import type { ComtradeHandle } from '../wasm-pkg/voltcase_wasm';
 
 export type Revision = 'Y1991' | 'Y1999' | 'Y2013';
 export type DatFormat = 'Ascii' | 'Binary16' | 'Binary32' | 'Float32';
@@ -55,7 +55,7 @@ export interface CfgFile {
   time_multiplier: number;
 }
 
-// Mirrors gridsense-core's analysis::facts / event_correlation types. Serde's default
+// Mirrors voltcase-core's analysis::facts / event_correlation types. Serde's default
 // enum representation: unit-only enums (Phase) serialize as bare strings; mixed
 // enums (FaultKind) are externally tagged, tuple variants as arrays.
 export type Phase = 'A' | 'B' | 'C';

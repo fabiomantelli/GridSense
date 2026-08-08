@@ -1,6 +1,6 @@
 <script lang="ts">
   import type { CfgFile } from '../lib/types';
-  import type { ComtradeHandle } from '../wasm-pkg/gridsense_wasm';
+  import type { ComtradeHandle } from '../wasm-pkg/voltcase_wasm';
   import { resolveChartTheme } from '../lib/theme';
 
   let { metadata, handle }: { metadata: CfgFile; handle: ComtradeHandle } = $props();

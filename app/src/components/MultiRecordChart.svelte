@@ -3,7 +3,7 @@
   import 'uplot/dist/uPlot.min.css';
   import { onMount, onDestroy } from 'svelte';
   import type { AnalysisFacts, CfgFile } from '../lib/types';
-  import type { ComtradeHandle } from '../wasm-pkg/gridsense_wasm';
+  import type { ComtradeHandle } from '../wasm-pkg/voltcase_wasm';
   import { resolveChartTheme } from '../lib/theme';
   import { buildComparisonData } from '../lib/alignRecords';
 
@@ -173,10 +173,10 @@
       series,
       legend: { show: true },
       cursor: {
-        // Distinct key from WaveformChart's 'gridsense-waveform' — that key is a
+        // Distinct key from WaveformChart's 'voltcase-waveform' — that key is a
         // global string in uPlot, so reusing it would cross-sync zoom/cursor with any
         // single-record tab mounted elsewhere.
-        sync: { key: 'gridsense-compare', setSeries: true, scales: ['x', null] },
+        sync: { key: 'voltcase-compare', setSeries: true, scales: ['x', null] },
         drag: { x: true, y: false },
       },
       hooks: {

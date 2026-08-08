@@ -81,7 +81,7 @@
     <svg class="mark" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
       <path d="M2 12h4l2-7 4 14 3-10 2 3h5" />
     </svg>
-    <span class="wordmark">Utility Investigator</span>
+    <span class="wordmark">Voltcase</span>
   </div>
   <span class="trust-badge">100% local · nothing is uploaded</span>
 </header>

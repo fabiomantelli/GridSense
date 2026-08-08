@@ -1,5 +1,5 @@
 [package]
-name = "gridsense-wasm"
+name = "voltcase-wasm"
 version.workspace = true
 edition.workspace = true
 
@@ -7,7 +7,7 @@ edition.workspace = true
 crate-type = ["cdylib", "rlib"]
 
 [dependencies]
-gridsense-core = { path = "../gridsense-core" }
+voltcase-core = { path = "../voltcase-core" }
 serde = "1"
 wasm-bindgen = "0.2"
 js-sys = "0.3"

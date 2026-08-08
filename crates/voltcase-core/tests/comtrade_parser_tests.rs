@@ -1,4 +1,4 @@
-use gridsense_core::comtrade::{self, DatFormat, Revision};
+use voltcase_core::comtrade::{self, DatFormat, Revision};
 
 fn fixture(name: &str) -> (String, Vec<u8>) {
     let base = format!("{}/tests/fixtures/ascii/{name}", env!("CARGO_MANIFEST_DIR"));

@@ -1,5 +1,5 @@
-use gridsense_core::comtrade::{self, ComtradeRecord};
-use gridsense_core::analysis;
+use voltcase_core::comtrade::{self, ComtradeRecord};
+use voltcase_core::analysis;
 use serde::Serialize;
 use wasm_bindgen::prelude::*;
 

@@ -1,10 +1,10 @@
-use gridsense_core::analysis::event_correlation::{classify_events, FaultKind, Phase, DEFAULT_STEP_THRESHOLD_PCT};
-use gridsense_core::analysis::event_detection::{detect_step_changes, StepDirection};
-use gridsense_core::analysis::phasor::{extract_phasor, Complex64};
-use gridsense_core::analysis::rms::{overall_rms, windowed_rms};
-use gridsense_core::analysis::symmetrical_components::sequence_components;
-use gridsense_core::analysis::{self};
-use gridsense_core::comtrade;
+use voltcase_core::analysis::event_correlation::{classify_events, FaultKind, Phase, DEFAULT_STEP_THRESHOLD_PCT};
+use voltcase_core::analysis::event_detection::{detect_step_changes, StepDirection};
+use voltcase_core::analysis::phasor::{extract_phasor, Complex64};
+use voltcase_core::analysis::rms::{overall_rms, windowed_rms};
+use voltcase_core::analysis::symmetrical_components::sequence_components;
+use voltcase_core::analysis::{self};
+use voltcase_core::comtrade;
 
 const SQRT2: f64 = std::f64::consts::SQRT_2;
 
@@ -166,8 +166,8 @@ fn classify_events_identifies_phase_b_ground_fault_and_breaker_trip() {
 #[test]
 fn classify_events_leaves_unmatched_optional_fields_none() {
     // Voltage-only sag: no matching current rise, no breaker deviation. Regression
-    // guard for the gridsense-wasm serialization boundary — these `None`s must
-    // reach JS as `null`, not `undefined` (see gridsense-wasm/src/lib.rs's `to_js`),
+    // guard for the voltcase-wasm serialization boundary — these `None`s must
+    // reach JS as `null`, not `undefined` (see voltcase-wasm/src/lib.rs's `to_js`),
     // or the UI's `!= null` guards silently let a `.toFixed()` call crash.
     let base = format!("{}/tests/fixtures/ascii/voltage_only_v1999", env!("CARGO_MANIFEST_DIR"));
     let cfg = std::fs::read_to_string(format!("{base}.cfg")).unwrap();
