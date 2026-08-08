@@ -89,6 +89,20 @@
     included = next;
   }
 
+  function selectAllIncluded() {
+    const next = new Set(included);
+    for (const s of eligibleSessions) {
+      if (next.has(s.stem)) continue;
+      next.add(s.stem);
+      for (const unit of selectedUnitsOrdered) defaultChannel(unit, s);
+    }
+    included = next;
+  }
+
+  function clearIncluded() {
+    included = new Set();
+  }
+
   function setChannel(unit: string, stem: string, e: Event) {
     const value = Number((e.currentTarget as HTMLSelectElement).value);
     channelChoice = { ...channelChoice, [unit]: { ...(channelChoice[unit] ?? {}), [stem]: value } };
@@ -137,7 +151,17 @@
   </section>
 
   <section class="card">
-    <h3>2. Pick records to include</h3>
+    <div class="section-header">
+      <h3>2. Pick records to include</h3>
+      {#if eligibleSessions.length > 1}
+        <div class="bulk-actions">
+          <button class="link-button" onclick={selectAllIncluded} disabled={included.size === eligibleSessions.length}>
+            Select all
+          </button>
+          <button class="link-button" onclick={clearIncluded} disabled={included.size === 0}>Clear</button>
+        </div>
+      {/if}
+    </div>
     <div class="session-list">
       {#each sessions as s (s.stem)}
         {@const reason = disabledReasonFor(s)}
@@ -213,6 +237,38 @@
     margin: 0 0 0.75rem;
     font-size: 0.85rem;
     color: var(--text-secondary);
+  }
+  .section-header {
+    display: flex;
+    align-items: baseline;
+    justify-content: space-between;
+    gap: 1rem;
+  }
+  .section-header h3 {
+    margin: 0 0 0.75rem;
+  }
+  .bulk-actions {
+    display: flex;
+    gap: 0.9rem;
+    margin-bottom: 0.75rem;
+  }
+  .link-button {
+    background: none;
+    border: none;
+    padding: 0;
+    font-size: 0.78rem;
+    color: var(--text-secondary);
+    cursor: pointer;
+    text-decoration: underline;
+    text-underline-offset: 2px;
+  }
+  .link-button:hover:not(:disabled) {
+    color: var(--series-1);
+  }
+  .link-button:disabled {
+    color: var(--text-muted);
+    cursor: default;
+    text-decoration: none;
   }
   .pills {
     display: flex;
