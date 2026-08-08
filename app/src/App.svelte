@@ -3,7 +3,6 @@
   import DropZone from './components/DropZone.svelte';
   import ChannelTable from './components/ChannelTable.svelte';
   import WaveformChart from './components/WaveformChart.svelte';
-  import DigitalTimeline from './components/DigitalTimeline.svelte';
   import FactsPanel from './components/FactsPanel.svelte';
   import CompareView from './components/CompareView.svelte';
   import { pairComtradeFiles, type ComtradePair, type PendingHalf } from './lib/filePairing';
@@ -160,11 +159,6 @@
             <h2>Waveforms</h2>
             {#key getTheme()}
               <WaveformChart metadata={s.metadata} handle={s.handle} facts={s.facts} />
-            {/key}
-          </section>
-          <section>
-            {#key getTheme()}
-              <DigitalTimeline metadata={s.metadata} handle={s.handle} />
             {/key}
           </section>
           <section>

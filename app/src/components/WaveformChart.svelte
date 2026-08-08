@@ -4,6 +4,7 @@
   import { resolveChartTheme } from '../lib/theme';
   import { groupChannelsByUnit } from '../lib/channelGrouping';
   import ChannelLane from './ChannelLane.svelte';
+  import DigitalLane from './DigitalLane.svelte';
 
   let { metadata, handle, facts }: { metadata: CfgFile; handle: ComtradeHandle; facts: AnalysisFacts } = $props();
 
@@ -15,6 +16,7 @@
   // satisfy Svelte's reactivity contract for prop reads — this component is keyed
   // by stem and never rebound to a different handle/metadata (see App.svelte).
   const groups: [string, number[]][] = $derived(groupChannelsByUnit(metadata.analog_channels));
+  const digitalChannels = $derived(metadata.digital_channels);
 
   const timestampsMs: Float64Array = (() => {
     const us = handle.timestamps_f64();
@@ -99,32 +101,38 @@
   // {#each} key below) whenever its own showXAxis flips, which naturally
   // reassigns/clears this via bind:this.
   let laneRefsByIndex: Record<number, ChannelLane | undefined> = {};
+  // Separate map — digital channel indices (0..N-1 of metadata.digital_channels)
+  // would otherwise collide with analog channel indices from a different array.
+  let digitalLaneRefsByIndex: Record<number, DigitalLane | undefined> = {};
 
   function resetZoom() {
     for (const lane of Object.values(laneRefsByIndex)) lane?.resetZoom(fullXRange[0], fullXRange[1]);
+    for (const lane of Object.values(digitalLaneRefsByIndex)) lane?.resetZoom(fullXRange[0], fullXRange[1]);
   }
 
-  // At most one group expanded to fullscreen at a time — index into `groups`.
-  // Per-card (not a single page-level toggle covering every group): a real
-  // multi-source file can have several unit groups (V, A, Hz, ...), and a
-  // shared toolbar button sitting above the first card both looked like it
-  // belonged only to that card AND, when clicked, unexpectedly expanded every
-  // other group along with it. Each card owning its own toggle — the same
-  // pattern MultiRecordChart/CompareView already uses — makes the scope
+  // At most one card expanded to fullscreen at a time — keyed by the group's
+  // own `units` string (or 'digital' for the digital-channels card), not a
+  // numeric index, since the digital card isn't a member of `groups`. Per-card
+  // (not a single page-level toggle covering every card): a real multi-source
+  // file can have several unit groups (V, A, Hz, ...) plus digital channels,
+  // and a shared toolbar button sitting above the first card both looked like
+  // it belonged only to that card AND, when clicked, unexpectedly expanded
+  // every other card along with it. Each card owning its own toggle — the
+  // same pattern MultiRecordChart/CompareView already uses — makes the scope
   // unambiguous: the button you click is the card that expands.
-  let expandedGroupIndex = $state<number | null>(null);
-  function toggleExpand(gi: number) {
-    expandedGroupIndex = expandedGroupIndex === gi ? null : gi;
+  let expandedKey = $state<string | null>(null);
+  function toggleExpand(key: string) {
+    expandedKey = expandedKey === key ? null : key;
   }
 
   // While a card is expanded it behaves like a lightbox: Esc closes it and the
   // page behind it stops scrolling so the two scroll contexts don't fight.
   $effect(() => {
-    if (expandedGroupIndex == null) return;
+    if (expandedKey == null) return;
     const previousOverflow = document.body.style.overflow;
     document.body.style.overflow = 'hidden';
     function onKeydown(e: KeyboardEvent) {
-      if (e.key === 'Escape') expandedGroupIndex = null;
+      if (e.key === 'Escape') expandedKey = null;
     }
     window.addEventListener('keydown', onKeydown);
     return () => {
@@ -145,19 +153,19 @@
   </svg>
 {/snippet}
 
-{#if groups.length}
+{#if groups.length || digitalChannels.length}
   <div class="toolbar">
     <button class="reset-zoom" onclick={resetZoom}>Reset zoom</button>
     <span class="hint">drag to zoom · double-click to reset</span>
   </div>
-  {#if expandedGroupIndex != null}
-    <button class="backdrop" onclick={() => (expandedGroupIndex = null)} aria-label="Exit fullscreen"></button>
+  {#if expandedKey != null}
+    <button class="backdrop" onclick={() => (expandedKey = null)} aria-label="Exit fullscreen"></button>
   {/if}
   <div class="charts">
     {#each groups as [units, indices], gi (units)}
       {@const visIdx = visibleInGroup(indices)}
       {@const lastVisible = visIdx[visIdx.length - 1]}
-      {@const isExpanded = expandedGroupIndex === gi}
+      {@const isExpanded = expandedKey === units}
       <details class="chart-card" class:expanded={isExpanded} open>
         <summary>
           <span class="summary-row">
@@ -201,7 +209,7 @@
                 onclick={(e) => {
                   e.preventDefault();
                   e.stopPropagation();
-                  toggleExpand(gi);
+                  toggleExpand(units);
                 }}
                 aria-label={isExpanded ? 'Exit fullscreen' : `Expand ${units} chart`}
               >
@@ -249,9 +257,54 @@
         </div>
       </details>
     {/each}
+    {#if digitalChannels.length}
+      {@const isExpanded = expandedKey === 'digital'}
+      <details class="chart-card" class:expanded={isExpanded} open>
+        <summary>
+          <span class="summary-row">
+            <span>Digital channels — {digitalChannels.length} channel{digitalChannels.length === 1 ? '' : 's'}</span>
+            <span class="bulk-actions">
+              {#if isExpanded}
+                <span class="hint">Esc or click outside to exit</span>
+              {/if}
+              <button
+                class="expand-toggle"
+                onclick={(e) => {
+                  e.preventDefault();
+                  e.stopPropagation();
+                  toggleExpand('digital');
+                }}
+                aria-label={isExpanded ? 'Exit fullscreen' : 'Expand Digital channels chart'}
+              >
+                {@render (isExpanded ? shrinkIcon : expandIcon)()}
+              </button>
+            </span>
+          </span>
+        </summary>
+        <div class="content">
+          <div class="lanes">
+            {#each digitalChannels as ch, idx (idx)}
+              <DigitalLane
+                bind:this={digitalLaneRefsByIndex[idx]}
+                label={ch.id}
+                channelIndex={idx}
+                {handle}
+                {timestampsMs}
+                showXAxis={idx === digitalChannels.length - 1}
+                expanded={isExpanded}
+              />
+            {/each}
+          </div>
+          <p class="legend">
+            <span class="swatch" style:background={theme.series[0]}></span> 1 (energized/closed)
+            <span class="swatch" style:background={theme.grid}></span> 0 (de-energized/open)
+          </p>
+        </div>
+      </details>
+    {/if}
   </div>
 {:else}
-  <p class="note">No analog channels in this record.</p>
+  <p class="note">No channels in this record.</p>
 {/if}
 
 <style>
@@ -465,5 +518,16 @@
   }
   .chart-card .note {
     margin: 0;
+  }
+  .legend {
+    font-size: 0.78rem;
+    color: var(--text-muted);
+    display: flex;
+    align-items: center;
+    gap: 0.35rem;
+    margin: 0.6rem 0 0;
+  }
+  .legend .swatch {
+    margin-left: 0.5rem;
   }
 </style>
