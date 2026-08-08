@@ -366,6 +366,15 @@
   }
   .chart-container {
     width: 100%;
+    /* Authoritative, not content-driven: the ResizeObserver in the script block
+       feeds this element's actual size into uPlot's canvas, so if this height came
+       from the canvas instead (no rule here, sized to fit content), exiting expanded
+       mode would be circular — the container reporting "no change" because it was
+       simply echoing whatever oversized canvas was still sitting inside it — and the
+       chart would stay stuck at fullscreen size forever. flex:1 below still wins
+       over this while expanded (flex-basis from the `1` shorthand is 0%, not this
+       height), so this only governs the collapsed state. */
+    height: 280px;
   }
   .caption {
     color: var(--text-muted);
